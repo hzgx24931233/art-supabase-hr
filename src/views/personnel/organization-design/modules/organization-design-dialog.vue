@@ -39,8 +39,6 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
-  import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import {
     fetchOrganizationDesignOptions,
@@ -61,7 +59,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     scenarioCode: string
     scenarioName: string
     objective: string
@@ -85,15 +82,12 @@
   }
 
   const emit = defineEmits<{ success: [entity: Entity, type: DialogType] }>()
-  const userStore = useUserStore()
   const changeTypeOptions = useDictionaryOptions('hrOrganizationChangeType')
   const organizationTypeOptions = useDictionaryOptions('organizationType')
-  const { getUserInfo, isPlatformSuper } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('scenario')
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const references = reactive({
     organizations: [] as Api.Hr.OrganizationDesignReference[],
     employees: [] as Api.Hr.OrganizationDesignReference[],
@@ -102,7 +96,6 @@
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     scenarioCode: '',
     scenarioName: '',
     objective: '',
@@ -125,23 +118,8 @@
       label: `${item.name}${item.code ? `（${item.code}）` : ''}`,
       value: item.id
     }))
-  const tenantItems = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            span: 24,
-            options: tenantOptions.value,
-            props: { filterable: true }
-          }
-        ]
-      : []
-  )
 
   const scenarioItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '方案定义', key: 'scenarioDefinition', type: 'divider', span: 24 },
     { label: '方案编码', key: 'scenarioCode', type: 'input', props: { maxlength: 40 } },
     { label: '方案名称', key: 'scenarioName', type: 'input', props: { maxlength: 160 } },
@@ -163,7 +141,6 @@
   ])
 
   const changeItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '方案与动作', key: 'changeDefinition', type: 'divider', span: 24 },
     {
       label: '所属方案',
@@ -249,9 +226,6 @@
   ])
 
   const formRules = computed<FormRules<FormModel>>(() => ({
-    tenantId: isPlatformSuper.value
-      ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-      : [],
     scenarioCode:
       entity.value === 'scenario' ? [{ required: true, message: '请输入方案编码' }] : [],
     scenarioName:
@@ -294,14 +268,11 @@
   })
 
   const loadReferences = async (): Promise<void> => {
-    if (!formModel.tenantId && isPlatformSuper.value) return
     const kinds =
       entity.value === 'scenario'
         ? (['employee'] as const)
         : (['organization', 'scenario'] as const)
-    const responses = await Promise.all(
-      kinds.map((kind) => fetchOrganizationDesignOptions(kind, formModel.tenantId))
-    )
+    const responses = await Promise.all(kinds.map((kind) => fetchOrganizationDesignOptions(kind)))
     kinds.forEach((kind, index) => {
       references[`${kind}s` as keyof typeof references] = responses[index]?.data ?? []
     })
@@ -320,7 +291,6 @@
       if (entity.value === 'scenario')
         await saveOrganizationDesignScenario({
           id: formModel.id,
-          tenantId: formModel.tenantId,
           scenarioCode: formModel.scenarioCode.trim(),
           scenarioName: formModel.scenarioName.trim(),
           objective: formModel.objective.trim(),
@@ -333,7 +303,6 @@
       else
         await saveOrganizationDesignChange({
           id: formModel.id,
-          tenantId: formModel.tenantId,
           scenarioId: formModel.scenarioId!,
           changeType: formModel.changeType,
           organizationId: formModel.changeType === 'create' ? null : formModel.organizationId,
@@ -360,7 +329,6 @@
     Object.assign(formModel, createInitialModel(), payload.editData ?? {})
     if (payload.scenario) {
       formModel.scenarioId = payload.scenario.id
-      formModel.tenantId = payload.scenario.tenantId
     }
     await nextTick()
     formRef.value?.clearValidate()
@@ -372,13 +340,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
         } finally {
           api.setLoading(false)
@@ -387,17 +348,6 @@
       onConfirm: submit
     })
   }
-  watch(
-    () => formModel.tenantId,
-    async (tenantId, previous) => {
-      if (!tenantId || tenantId === previous || dialogType.value !== 'add') return
-      formModel.ownerEmployeeId = undefined
-      formModel.scenarioId = undefined
-      formModel.organizationId = undefined
-      formModel.proposedParentId = undefined
-      await loadReferences()
-    }
-  )
   watch(
     () => formModel.changeType,
     () => {

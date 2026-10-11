@@ -22,7 +22,6 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { addPosition, editPosition, fetchJobArchitectureOptions } from '@hr/api'
   import { fetchGetEnableOrganizationTree } from '@/api/system-manage'
-  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
 
   defineOptions({ name: 'HrPositionDialog' })
@@ -40,12 +39,10 @@
   }
 
   const emit = defineEmits<{ (event: 'success', type: 'add' | 'edit'): void }>()
-  const { effectiveTenantId } = useTenantScopeFormPolicy()
   const dialogRef = ref<ArtDialogExpose<Position | undefined>>()
   const formRef = ref<DialogExposeForm>()
 
   const createInitialForm = (): Position => ({
-    tenantId: effectiveTenantId.value ?? undefined,
     organizationId: null,
     jobProfileId: '',
     gradeId: null,
@@ -61,7 +58,6 @@
   const positionNumber = useDocumentNumberRule('hr.position')
 
   const formRules = computed<FormRules<Position>>(() => ({
-    tenantId: [{ required: true, message: '当前账号未绑定有效租户', trigger: 'change' }],
     positionCode: [
       ...(form.id || positionNumber.manualRequired(false)
         ? [{ required: true, message: '请输入岗位编码', trigger: 'blur' as const }]
@@ -86,18 +82,11 @@
   const formItems = computed<FormItem[]>(() => [
     { label: '岗位信息', key: 'baseSection', type: 'divider', span: 24 },
     {
-      label: '所属租户',
-      key: 'tenantId',
-      type: 'input',
-      hidden: true
-    },
-    {
       label: '所属组织',
       key: 'organizationId',
       type: 'treeSelect',
       immediate: false,
-      api: async () =>
-        (await fetchGetEnableOrganizationTree({ tenantId: form.tenantId })).data ?? [],
+      api: async () => (await fetchGetEnableOrganizationTree()).data ?? [],
       valueField: 'id',
       labelField: 'organizationName',
       childrenField: 'children',
@@ -116,7 +105,7 @@
       key: 'jobProfileId',
       type: 'select',
       immediate: false,
-      api: async () => (await fetchJobArchitectureOptions('profile', form.tenantId)).data ?? [],
+      api: async () => (await fetchJobArchitectureOptions('profile')).data ?? [],
       valueField: 'id',
       labelFn: (option) => `${option.name ?? ''} · ${option.code ?? ''}`,
       props: { filterable: true, placeholder: '请选择岗位对应的标准职务' }
@@ -126,7 +115,7 @@
       key: 'gradeId',
       type: 'select',
       immediate: false,
-      api: async () => (await fetchJobArchitectureOptions('grade', form.tenantId)).data ?? [],
+      api: async () => (await fetchJobArchitectureOptions('grade')).data ?? [],
       valueField: 'id',
       labelFn: (option) => `${option.name ?? ''} · ${option.code ?? ''}`,
       props: { filterable: true, clearable: true, placeholder: '可选，默认继承标准职务' }

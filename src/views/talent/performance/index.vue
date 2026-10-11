@@ -132,7 +132,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     deletePerformanceRecord,
     fetchPerformanceOptions,
@@ -217,7 +216,7 @@
   ]
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { hasAuth } = useAuth()
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('cycle')
@@ -227,11 +226,10 @@
   const navigationItems: HrEntityNavigationItem[] = tabs
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const cycleOptions = shallowRef<Api.Hr.PerformanceReference[]>([])
   const calibrationOptions = shallowRef<Api.Hr.PerformanceReference[]>([])
   const tableState = reactive<{ searchQuery: Api.Hr.PerformanceSearchParams }>({
-    searchQuery: { tenantId: '', status: '', keyword: '', cycleId: '', sessionId: '' }
+    searchQuery: { status: '', keyword: '', cycleId: '', sessionId: '' }
   })
   const overview = reactive<Api.Hr.PerformanceOverview>({
     activeCycleCount: 0,
@@ -334,19 +332,6 @@
     }))
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: {
-          clearable: true,
-          filterable: true,
-          placeholder: '全部租户',
-          onChange: handleTenantFilterChange
-        }
-      })
     if (activeEntity.value !== 'cycle')
       items.push({
         label: '绩效周期',
@@ -954,28 +939,23 @@
     return fetchPerformanceRecords(activeEntity.value, { ...params, from, to })
   }
   const loadReferences = async (): Promise<void> => {
-    const tenantId = tableState.searchQuery.tenantId
     const [cycles, sessions] = await Promise.all([
-      fetchPerformanceOptions('cycle', tenantId),
-      fetchPerformanceOptions('calibration', tenantId)
+      fetchPerformanceOptions('cycle'),
+      fetchPerformanceOptions('calibration')
     ])
     cycleOptions.value = cycles.data ?? []
     calibrationOptions.value = sessions.data ?? []
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchPerformanceOverview(tableState.searchQuery.tenantId)
+    const response = await fetchPerformanceOverview()
     if (response.data) Object.assign(overview, response.data)
-  }
-  const handleTenantFilterChange = async (): Promise<void> => {
-    Object.assign(tableState.searchQuery, { cycleId: '', sessionId: '' })
-    await Promise.all([loadReferences(), refreshOverview()])
   }
   const openDialog = (entity: Entity, row?: RecordItem, preset?: Record<string, unknown>): void => {
     void dialogRef.value?.handleOpen({
       entity,
       type: row ? 'edit' : 'add',
       editData: row,
-      preset: { tenantId: tableState.searchQuery.tenantId || undefined, ...preset }
+      preset: { ...preset }
     })
   }
   const handleSaveSuccess = (type: DialogType): void => {
@@ -1116,13 +1096,6 @@
         'hrPerformanceLevel'
       ].map((code) => userStore.ensureDictLoaded(code))
     )
-    if (isPlatformSuper.value) {
-      const response = await fetchGetEnableTenantList()
-      tenantOptions.value = (response.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await Promise.all([loadReferences(), refreshOverview()])
   })
 </script>

@@ -25,9 +25,8 @@
           <ArtEmployeeSelect
             v-model="form.assigneeEmployeeId"
             v-model:selected-data="selection"
-            :tenant-id="record?.tenantId"
             title="选择员工服务处理人"
-            subtitle="仅选择当前租户内承担员工服务交付的有效员工"
+            subtitle="仅可选择承担员工服务交付的有效员工"
             placeholder="请选择处理人"
           />
         </ElFormItem>
@@ -72,7 +71,6 @@
       ? [
           {
             id: request.assignee.id,
-            tenantId: request.tenantId || '',
             employeeNo: request.assignee.code || '',
             employeeName: request.assignee.name || '未命名员工',
             employmentStatus: 'active'

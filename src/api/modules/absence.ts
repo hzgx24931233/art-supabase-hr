@@ -10,13 +10,9 @@ type AbsenceSearchParams = Api.Hr.AbsenceSearchParams
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchAbsenceOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchAbsenceOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.AbsenceOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_absence_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_absence_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -36,8 +32,7 @@ export async function fetchAbsenceRecords<TRecord extends AbsenceRecord>(
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_balance_year: params.balanceYear ?? null,
-          p_tenant_id: params.tenantId || null
+          p_balance_year: params.balanceYear ?? null
         }),
         options
       ),
@@ -53,15 +48,13 @@ export async function fetchAbsenceRecords<TRecord extends AbsenceRecord>(
 
 export async function fetchAbsenceOptions(
   kind: 'employee' | 'leave_type' | 'organization' | 'grade' | 'policy',
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.AbsenceReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_absence_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),
@@ -73,7 +66,6 @@ const normalizePayload = (record: AbsenceRecord) =>
   keysToSnakeDeep(
     omit(record, [
       'id',
-      'tenant',
       'employee',
       'organization',
       'leaveType',
@@ -124,7 +116,6 @@ export async function adjustLeaveBalance(payload: {
   balanceYear: number
   delta: number
   reason: string
-  tenantId?: string
 }) {
   return await responseHandle<string>(
     () =>
@@ -133,8 +124,7 @@ export async function adjustLeaveBalance(payload: {
         p_leave_type_id: payload.leaveTypeId,
         p_balance_year: payload.balanceYear,
         p_delta: payload.delta,
-        p_reason: payload.reason,
-        p_tenant_id: payload.tenantId || null
+        p_reason: payload.reason
       }),
     { showMessage: true, breakReturn: true, message: '休假余额已调整并写入台账' }
   )

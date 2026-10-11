@@ -262,7 +262,7 @@
         <footer class="people-analytics-page__footnote">
           <ArtSvgIcon icon="ri:lock-2-line" />
           <span>
-            本页仅返回租户内聚合结果；组织与用工类别的小样本会合并保护，接口不包含员工姓名、工号或任职标识。
+            本页仅返回聚合结果；组织与用工类别的小样本会合并保护，接口不包含员工姓名、工号或任职标识。
           </span>
           <time>数据生成于 {{ generatedAt }}</time>
         </footer>

@@ -240,7 +240,7 @@
   const tableTotal = ref(0)
   const focusedEngagement = ref<Api.Hr.ExternalEngagement | null>(null)
   const tableState = reactive<{ searchQuery: Api.Hr.ContingentWorkforceSearchParams }>({
-    searchQuery: { keyword: '', status: '', tenantId: '' }
+    searchQuery: { keyword: '', status: '' }
   })
   const overview = reactive<Api.Hr.ContingentWorkforceOverview>({
     piiAccess: false,
@@ -983,7 +983,7 @@
     tableTotal.value = response.total ?? 0
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchContingentWorkforceOverview(tableState.searchQuery.tenantId)
+    const response = await fetchContingentWorkforceOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const refreshWorkspace = async (): Promise<void> => {

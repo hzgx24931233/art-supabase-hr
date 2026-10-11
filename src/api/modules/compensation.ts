@@ -10,13 +10,9 @@ type CompensationSearchParams = Api.Hr.CompensationSearchParams
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchCompensationOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchCompensationOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.CompensationOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_compensation_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_compensation_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -35,8 +31,7 @@ export async function fetchCompensationRecords<TRecord extends CompensationRecor
           p_from: from,
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
-          p_status: params.status || null,
-          p_tenant_id: params.tenantId || null
+          p_status: params.status || null
         }),
         options
       ),
@@ -52,15 +47,13 @@ export async function fetchCompensationRecords<TRecord extends CompensationRecor
 
 export async function fetchCompensationOptions(
   kind: 'employee' | 'plan' | 'component' | 'grade',
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.CompensationReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_compensation_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),
@@ -72,7 +65,6 @@ const normalizeRecordPayload = (record: CompensationRecord) =>
   keysToSnakeDeep(
     omit(record, [
       'id',
-      'tenant',
       'employee',
       'organization',
       'plan',
@@ -153,15 +145,13 @@ export async function actCompensationRecord(
 
 export async function fetchCompensationPayrollInputs(
   payrollMonth: string,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Record<string, unknown>[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_compensation_payroll_inputs_secure', {
-          p_payroll_month: payrollMonth,
-          p_tenant_id: tenantId || null
+          p_payroll_month: payrollMonth
         }),
         options
       ),

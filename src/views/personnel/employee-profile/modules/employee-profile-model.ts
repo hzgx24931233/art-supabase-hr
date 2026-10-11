@@ -3,8 +3,7 @@ import { omit } from 'lodash-es'
 export type Employee = Api.Hr.Employee
 export type EmployeeProfileForm = Api.Hr.EmployeeProfile
 
-export const createEmployee = (tenantId?: string): Employee => ({
-  tenantId,
+export const createEmployee = (): Employee => ({
   organizationId: null,
   positionId: null,
   employeeNo: '',
@@ -84,8 +83,8 @@ export const createReward = (): Api.Hr.EmployeeReward => ({
   description: ''
 })
 
-export const createEmployeeProfile = (tenantId?: string): EmployeeProfileForm => ({
-  ...createEmployee(tenantId),
+export const createEmployeeProfile = (): EmployeeProfileForm => ({
+  ...createEmployee(),
   contracts: [],
   educations: [],
   workExperiences: [],
@@ -97,7 +96,6 @@ interface NormalizeEmployeeOptions {
   contactDetailsEditable: boolean
   identityDetailsEditable: boolean
   careerRecordsEditable: boolean
-  tenantId?: string
 }
 
 export const normalizeEmployee = (
@@ -110,7 +108,6 @@ export const normalizeEmployee = (
     'workExperiences',
     'trainings',
     'rewards',
-    'tenant',
     'organization',
     'account',
     'fieldAccess',
@@ -148,6 +145,5 @@ export const normalizeEmployee = (
     ].forEach((key) => Reflect.deleteProperty(employee, key))
   }
   if (!options.careerRecordsEditable) Reflect.deleteProperty(employee, 'remark')
-  if (options.tenantId) employee.tenantId = options.tenantId
   return employee
 }

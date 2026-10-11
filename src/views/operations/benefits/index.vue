@@ -134,7 +134,6 @@
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import type { ColumnOption, DialogType } from '@/types'
   import { fetchBenefitRecords, fetchBenefitsOverview, transitionBenefitRecord } from '@hr/api'
   import HrEntityNavigation, {
@@ -203,7 +202,7 @@
   ]
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { hasAllAuth } = useAuth()
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('plan')
@@ -213,10 +212,9 @@
   const recordDialogRef = ref<RecordDialogExpose>()
   const optionDialogRef = ref<OptionDialogExpose>()
   const detailDrawerRef = ref<DetailDrawerExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const tableTotal = ref(0)
   const tableState = reactive<{ searchQuery: Api.Hr.BenefitSearchParams }>({
-    searchQuery: { keyword: '', status: '', planType: '', tenantId: '' }
+    searchQuery: { keyword: '', status: '', planType: '' }
   })
   const overview = reactive<Api.Hr.BenefitOverview>({
     activePlanCount: 0,
@@ -318,15 +316,6 @@
 
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value) {
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: { clearable: true, filterable: true, placeholder: '全部租户' }
-      })
-    }
     const statusCode =
       activeEntity.value === 'plan'
         ? 'hrBenefitPlanStatus'
@@ -741,7 +730,7 @@
     return fetchBenefitRecords(activeEntity.value, { ...params, from, to })
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchBenefitsOverview(tableState.searchQuery.tenantId)
+    const response = await fetchBenefitsOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const handleTableSuccess: NonNullable<ArtTableQueryProps['onSuccess']> = (_rows, response) => {
@@ -856,15 +845,6 @@
         'hrBenefitPayrollSyncStatus'
       ].map((code) => userStore.ensureDictLoaded(code))
     ]
-    if (isPlatformSuper.value)
-      tasks.push(
-        fetchGetEnableTenantList().then((response) => {
-          tenantOptions.value = (response.data ?? []).map((tenant) => ({
-            label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-            value: tenant.id!
-          }))
-        })
-      )
     await Promise.all(tasks)
   })
 </script>

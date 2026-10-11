@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchRecruitmentOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchRecruitmentOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.RecruitmentOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_recruitment_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_recruitment_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -31,8 +27,7 @@ export async function fetchRecruitmentRecords<TRecord extends Api.Hr.Recruitment
           p_from: from,
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
-          p_status: params.status || null,
-          p_tenant_id: params.tenantId || null
+          p_status: params.status || null
         }),
         options
       ),
@@ -48,15 +43,13 @@ export async function fetchRecruitmentRecords<TRecord extends Api.Hr.Recruitment
 
 export async function fetchRecruitmentOptions(
   kind: 'requisition' | 'candidate' | 'accepted_offer' | 'handoff',
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.RecruitmentReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_recruitment_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),

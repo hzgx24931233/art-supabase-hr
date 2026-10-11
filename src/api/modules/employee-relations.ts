@@ -6,18 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchEmployeeRelationsOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchEmployeeRelationsOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.EmployeeRelationOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_employee_relations_overview_secure', {
-          p_tenant_id: tenantId || null
-        }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_employee_relations_overview_secure', {}), options),
     { showErrorMessage: true }
   )
 }
@@ -38,8 +29,7 @@ export async function fetchEmployeeRelationsRecords<TRecord extends Api.Hr.Emplo
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
           p_case_type: params.caseType || null,
-          p_severity: params.severity || null,
-          p_tenant_id: params.tenantId || null
+          p_severity: params.severity || null
         }),
         options
       ),

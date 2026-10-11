@@ -23,7 +23,6 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="selections.employee"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择生命周期事项员工"
           />
         </template>
@@ -31,7 +30,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="selections.owner"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择事项或任务负责人"
           />
         </template>
@@ -39,7 +37,6 @@
           <ArtEmployeeSelect
             v-model="form.model.buddyEmployeeId"
             v-model:selected-data="selections.buddy"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择入职伙伴（可选）"
           />
         </template>
@@ -59,7 +56,6 @@
   } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchLifecycleOptions, saveLifecycleRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -69,7 +65,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     caseNo: string
     handoffId?: string
     employeeId?: string
@@ -113,11 +108,10 @@
 
   const emit = defineEmits<{ success: [type: DialogType, entity: Entity] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('case')
-  const tenantOptions = ref<FormItemOption[]>([])
   const caseOptions = shallowRef<Api.Hr.LifecycleReference[]>([])
   const templateOptions = shallowRef<Api.Hr.LifecycleReference[]>([])
   const organizationOptions = shallowRef<Api.Hr.LifecycleReference[]>([])
@@ -130,7 +124,6 @@
   })
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     caseNo: '',
     handoffId: undefined,
     employeeId: undefined,
@@ -172,26 +165,7 @@
     )
   )
 
-  const tenantItem = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: {
-              filterable: true,
-              placeholder: '请选择所属租户',
-              onChange: handleTenantChange
-            }
-          }
-        ]
-      : []
-  )
-
   const caseItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '事项与来源', key: 'caseSection', type: 'divider', span: 24 },
     {
       label: '事项编号',
@@ -274,7 +248,6 @@
   ])
 
   const taskItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '任务归属', key: 'taskScopeSection', type: 'divider', span: 24 },
     {
       label: '生命周期事项',
@@ -325,7 +298,6 @@
   ])
 
   const templateItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '任务包定义', key: 'templateSection', type: 'divider', span: 24 },
     { label: '任务包编码', key: 'templateCode', type: 'input', props: { maxlength: 60 } },
     { label: '任务包名称', key: 'templateName', type: 'input', props: { maxlength: 120 } },
@@ -347,7 +319,6 @@
   ])
 
   const templateTaskItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '模板任务', key: 'templateTaskSection', type: 'divider', span: 24 },
     {
       label: '所属任务包',
@@ -488,20 +459,12 @@
   }
 
   const loadReferences = async (): Promise<void> => {
-    if (isPlatformSuper.value && !formModel.tenantId) {
-      caseOptions.value = []
-      templateOptions.value = []
-      organizationOptions.value = []
-      positionOptions.value = []
-      handoffOptions.value = []
-      return
-    }
     const [cases, templates, organizations, positions, handoffs] = await Promise.all([
-      fetchLifecycleOptions('case', formModel.tenantId),
-      fetchLifecycleOptions('template', formModel.tenantId),
-      fetchLifecycleOptions('organization', formModel.tenantId),
-      fetchLifecycleOptions('position', formModel.tenantId),
-      fetchLifecycleOptions('handoff', formModel.tenantId)
+      fetchLifecycleOptions('case'),
+      fetchLifecycleOptions('template'),
+      fetchLifecycleOptions('organization'),
+      fetchLifecycleOptions('position'),
+      fetchLifecycleOptions('handoff')
     ])
     caseOptions.value = cases.data ?? []
     templateOptions.value = templates.data ?? []
@@ -511,20 +474,6 @@
     if (entity.value === 'case' && !formModel.templateId) handleCaseTypeChange()
   }
 
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(formModel, {
-      handoffId: undefined,
-      employeeId: undefined,
-      templateId: undefined,
-      organizationId: undefined,
-      positionId: undefined,
-      ownerEmployeeId: undefined,
-      buddyEmployeeId: undefined,
-      lifecycleCaseId: undefined
-    })
-    resetSelections()
-    await loadReferences()
-  }
   const handleCaseTypeChange = (): void => {
     const template = activeTemplateOptions.value[0]
     formModel.templateId = template?.id
@@ -554,7 +503,6 @@
     if (entity.value === 'case')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         caseNo: formModel.caseNo,
         handoffId: formModel.handoffId,
         employeeId: formModel.employeeId!,
@@ -573,7 +521,6 @@
     if (entity.value === 'task')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         lifecycleCaseId: formModel.lifecycleCaseId!,
         taskType: formModel.taskType,
         taskName: formModel.taskName,
@@ -590,7 +537,6 @@
     if (entity.value === 'template')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         templateCode: formModel.templateCode,
         templateName: formModel.templateName,
         caseType: formModel.caseType,
@@ -600,7 +546,6 @@
       }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       templateId: formModel.templateId!,
       taskType: formModel.taskType,
       taskName: formModel.taskName,
@@ -660,13 +605,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const tenants = await fetchGetEnableTenantList()
-            tenantOptions.value = (tenants.data ?? []).map((tenant) => ({
-              label: tenant.tenantName,
-              value: tenant.id
-            }))
-          }
           await loadReferences()
           await nextTick()
           formRef.value?.clearValidate()

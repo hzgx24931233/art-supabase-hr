@@ -22,7 +22,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="employeeSelection.owner"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择计划负责人"
           />
         </template>
@@ -30,7 +29,6 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="employeeSelection.learner"
-            :tenant-id="form.model.tenantId"
             :clearable="false"
             title="安排员工学习"
           />
@@ -39,7 +37,6 @@
           <ArtEmployeeSelect
             v-model="form.model.nominatedByEmployeeId"
             v-model:selected-data="employeeSelection.nominator"
-            :tenant-id="form.model.tenantId"
             placeholder="可选：选择学习安排人"
           />
         </template>
@@ -53,13 +50,9 @@
   import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchLearningOptions, fetchLearningRecords, saveLearningRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -69,7 +62,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     planCode: string
     planName: string
     trainingType: string
@@ -127,11 +119,10 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('plan')
-  const tenantOptions = ref<FormItemOption[]>([])
   const planOptions = shallowRef<Api.Hr.LearningReference[]>([])
   const courseOptions = shallowRef<Api.Hr.LearningReference[]>([])
   const draftCourseOptions = shallowRef<Api.Hr.LearningReference[]>([])
@@ -144,7 +135,6 @@
   }>({ owner: [], learner: [], nominator: [] })
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     planCode: '',
     planName: '',
     trainingType: 'skill',
@@ -202,25 +192,8 @@
   }>({
     model: formModel,
     items: computed(() => {
-      const common: FormItem[] = isPlatformSuper.value
-        ? [
-            {
-              label: '所属租户',
-              key: 'tenantId',
-              type: 'select',
-              options: tenantOptions.value,
-              props: {
-                filterable: true,
-                disabled: Boolean(form.model.id),
-                placeholder: '请选择所属租户',
-                onChange: handleTenantChange
-              }
-            }
-          ]
-        : []
       if (entity.value === 'plan')
         return [
-          ...common,
           input('planCode', '计划编码', '如 FY27_LEADERSHIP'),
           input('planName', '计划名称', '如 年度基层主管培养计划'),
           dict('trainingType', '培训类型', 'hrTrainingType'),
@@ -236,7 +209,6 @@
         ]
       if (entity.value === 'course')
         return [
-          ...common,
           input('courseCode', '课程编码', '如 LDR_ESSENTIALS_01'),
           input('courseName', '课程名称', '如 一线主管管理基础'),
           dict('category', '课程类别', 'hrLearningCourseCategory'),
@@ -266,14 +238,12 @@
         ]
       if (entity.value === 'course_competency')
         return [
-          ...common,
           select('courseId', '草稿课程', draftCourseOptions.value, '请选择待配置课程'),
           select('competencyId', '目标能力', competencyOptions.value, '请选择能力项'),
           dict('targetLevel', '完成目标等级', 'commonCompetencyLevel')
         ]
       if (entity.value === 'session')
         return [
-          ...common,
           input('sessionCode', '班次编码', '如 LDR_2027_01'),
           select('planId', '已发布计划', planOptions.value, '请选择培训计划'),
           select('courseId', '已发布课程', courseOptions.value, '请选择课程'),
@@ -288,14 +258,12 @@
         ]
       if (entity.value === 'enrollment')
         return [
-          ...common,
           select('sessionId', '开放班次', sessionOptions.value, '请选择可报名班次'),
           { label: '学习员工', key: 'employeeId', type: 'input' },
           { label: '安排人', key: 'nominatedByEmployeeId', type: 'input' },
           textarea('remark', '安排说明', '记录安排来源、培养目标或员工确认情况')
         ]
       return [
-        ...common,
         input('certificateNo', '证书编号', undefined, true),
         input('certificateName', '证书名称', undefined, true),
         input('credentialUrl', '电子凭证地址', '请输入可验证的 HTTPS 地址'),
@@ -304,9 +272,7 @@
       ]
     }),
     rules: computed(() => {
-      const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value ? required('请选择所属租户', 'change') : []
-      }
+      const rules: FormRules<FormModel> = {}
       if (entity.value === 'plan')
         Object.assign(rules, {
           planCode: required('请输入计划编码', 'blur'),
@@ -476,22 +442,12 @@
   }
 
   const loadReferences = async (): Promise<void> => {
-    const tenantId = form.model.tenantId
-    if (isPlatformSuper.value && !tenantId) {
-      planOptions.value = []
-      courseOptions.value = []
-      draftCourseOptions.value = []
-      sessionOptions.value = []
-      competencyOptions.value = []
-      return
-    }
     const [plans, courses, sessions, competencies, draftCourses] = await Promise.all([
-      fetchLearningOptions('plan', tenantId),
-      fetchLearningOptions('course', tenantId),
-      fetchLearningOptions('session', tenantId),
-      fetchLearningOptions('competency', tenantId),
+      fetchLearningOptions('plan'),
+      fetchLearningOptions('course'),
+      fetchLearningOptions('session'),
+      fetchLearningOptions('competency'),
       fetchLearningRecords<Api.Hr.LearningCourse>('course', {
-        tenantId,
         status: 'draft',
         from: 0,
         to: 499
@@ -503,7 +459,6 @@
     competencyOptions.value = competencies.data ?? []
     draftCourseOptions.value = (draftCourses.data ?? []).map((course) => ({
       id: course.id!,
-      tenantId: course.tenantId,
       code: course.courseCode,
       name: course.courseName,
       status: course.status
@@ -516,20 +471,6 @@
         formRef.value?.reloadOptions(key)
       )
     )
-  }
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(formModel, {
-      ownerEmployeeId: undefined,
-      planId: undefined,
-      courseId: undefined,
-      sessionId: undefined,
-      employeeId: undefined,
-      nominatedByEmployeeId: undefined,
-      competencyId: undefined
-    })
-    resetEmployeeSelections()
-    await loadReferences()
-    await reloadReferences()
   }
 
   const validateBusiness = (): void => {
@@ -560,7 +501,7 @@
   }
 
   const toRecord = (): RecordItem => {
-    const common = { id: form.model.id, tenantId: form.model.tenantId }
+    const common = { id: form.model.id }
     if (entity.value === 'plan')
       return {
         ...common,
@@ -683,19 +624,12 @@
     }[nextEntity]
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${label}`,
-      subtitle: '学习发展数据按租户隔离，并通过独立业务权限与状态机访问',
+      subtitle: '学习发展数据通过独立业务权限与状态机访问',
       confirmText: row ? '保存更改' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
           await reloadReferences()
         } finally {

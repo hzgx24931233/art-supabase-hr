@@ -34,7 +34,6 @@ const pickPositionPayload = (position: Position): Record<string, unknown> => {
     sort: position.sort,
     description: position.description ?? null
   }
-  if (position.tenantId) payload.tenantId = position.tenantId
   return keysToSnakeDeep(payload)
 }
 
@@ -48,7 +47,6 @@ export async function fetchPositionList(params: PositionSearchParams, options?: 
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(String(params.keyword ?? '')),
           p_enabled: params.enabled ?? null,
-          p_tenant_id: params.tenantId || null,
           p_organization_ids: params.organizationIds?.length ? params.organizationIds : null
         }),
         options
@@ -63,37 +61,29 @@ export async function fetchPositionList(params: PositionSearchParams, options?: 
   }
 }
 
-export async function fetchPositionOrganizationTree(params: { tenantId?: string } = {}) {
+export async function fetchPositionOrganizationTree() {
   const response = await responseHandle<OrganizationScopeFilterItem[]>(
-    () =>
-      supabase.rpc('hr_list_position_organization_scope_secure', {
-        p_tenant_id: params.tenantId || null
-      }),
+    () => supabase.rpc('hr_list_position_organization_scope_secure'),
     { showErrorMessage: true }
   )
 
   return {
     ...response,
     data: organizationTreeUtils.listToTree(response.data ?? [], (a, b) => {
-      const tenantDiff = (a.tenant?.tenantName ?? '').localeCompare(
-        b.tenant?.tenantName ?? '',
-        'zh-CN'
-      )
       const sortDiff = (a.sort ?? 0) - (b.sort ?? 0)
-      return tenantDiff || sortDiff || a.organizationName.localeCompare(b.organizationName, 'zh-CN')
+      return sortDiff || a.organizationName.localeCompare(b.organizationName, 'zh-CN')
     })
   }
 }
 
 export async function fetchPositionOptions(
-  params: { tenantId?: string; includeDisabled?: boolean },
+  params: { includeDisabled?: boolean } = {},
   options?: ApiRequestOptions
 ) {
   return await responseHandle<PositionOption[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_position_options_secure', {
-          p_tenant_id: params.tenantId || null,
           p_include_disabled: params.includeDisabled ?? false
         }),
         options

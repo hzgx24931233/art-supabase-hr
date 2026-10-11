@@ -60,8 +60,6 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
-  import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import {
     fetchInternalMobilityOptions,
@@ -83,7 +81,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     opportunityCode: string
     opportunityTitle: string
     opportunityType: Api.Hr.InternalOpportunityType
@@ -116,18 +113,15 @@
   }
 
   const emit = defineEmits<{ success: [entity: Entity, type: DialogType] }>()
-  const userStore = useUserStore()
   const opportunityTypeOptions = useDictionaryOptions('hrMobilityOpportunityType')
   const workModeOptions = useDictionaryOptions('hrMobilityWorkMode')
   const managerAwarenessOptions = useDictionaryOptions('hrMobilityManagerAwareness')
-  const { getUserInfo, isPlatformSuper } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('opportunity')
   const dialogType = ref<DialogType>('add')
   const manageAccess = ref(false)
   const selectedOpportunity = ref<Api.Hr.InternalMobilityOpportunity>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const references = reactive({
     organizations: [] as Api.Hr.InternalMobilityReference[],
     positions: [] as Api.Hr.InternalMobilityReference[],
@@ -137,7 +131,6 @@
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     opportunityCode: '',
     opportunityTitle: '',
     opportunityType: 'permanent',
@@ -172,20 +165,6 @@
   const opportunityTypeLabel = (value: Api.Hr.InternalOpportunityType): string =>
     ({ permanent: '永久岗位', rotation: '轮岗机会', project: '项目机会', gig: '短期任务' })[value]
 
-  const tenantItems = computed<FormItem[]>(() =>
-    isPlatformSuper.value && entity.value === 'opportunity'
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            span: 24,
-            options: tenantOptions.value,
-            props: { filterable: true, placeholder: '请选择所属租户' }
-          }
-        ]
-      : []
-  )
   const filteredPositions = computed(() =>
     references.positions.filter(
       (item) => !formModel.organizationId || item.organizationId === formModel.organizationId
@@ -193,7 +172,6 @@
   )
 
   const opportunityItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '机会定义', key: 'opportunityDefinition', type: 'divider', span: 24 },
     { label: '机会编码', key: 'opportunityCode', type: 'input', props: { maxlength: 40 } },
     { label: '机会名称', key: 'opportunityTitle', type: 'input', props: { maxlength: 160 } },
@@ -348,10 +326,6 @@
   ])
 
   const formRules = computed<FormRules<FormModel>>(() => ({
-    tenantId:
-      isPlatformSuper.value && entity.value === 'opportunity'
-        ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-        : [],
     opportunityCode:
       entity.value === 'opportunity' ? [{ required: true, message: '请输入机会编码' }] : [],
     opportunityTitle:
@@ -408,20 +382,18 @@
 
   const loadReferences = async (): Promise<void> => {
     if (entity.value === 'opportunity') {
-      if (!formModel.tenantId && isPlatformSuper.value) return
       const [organizations, positions, employees] = await Promise.all([
-        fetchInternalMobilityOptions('organization', formModel.tenantId),
-        fetchInternalMobilityOptions('position', formModel.tenantId),
-        fetchInternalMobilityOptions('employee', formModel.tenantId)
+        fetchInternalMobilityOptions('organization'),
+        fetchInternalMobilityOptions('position'),
+        fetchInternalMobilityOptions('employee')
       ])
       references.organizations = organizations.data ?? []
       references.positions = positions.data ?? []
       references.employees = employees.data ?? []
       return
     }
-    const requests = [fetchInternalMobilityOptions('opportunity', formModel.tenantId)]
-    if (manageAccess.value)
-      requests.push(fetchInternalMobilityOptions('employee', formModel.tenantId))
+    const requests = [fetchInternalMobilityOptions('opportunity')]
+    if (manageAccess.value) requests.push(fetchInternalMobilityOptions('employee'))
     const [opportunities, employees] = await Promise.all(requests)
     references.opportunities = opportunities.data ?? []
     references.employees = employees?.data ?? []
@@ -454,7 +426,6 @@
       if (entity.value === 'opportunity') {
         await saveInternalMobilityOpportunity({
           id: formModel.id,
-          tenantId: formModel.tenantId,
           opportunityCode: formModel.opportunityCode.trim(),
           opportunityTitle: formModel.opportunityTitle.trim(),
           opportunityType: formModel.opportunityType,
@@ -479,7 +450,6 @@
       } else {
         await saveInternalMobilityApplication({
           id: formModel.id,
-          tenantId: formModel.tenantId,
           opportunityId: formModel.opportunityId!,
           employeeId: formModel.employeeId,
           motivation: formModel.motivation.trim(),
@@ -504,7 +474,6 @@
     Object.assign(formModel, createInitialModel(), payload.editData ?? {})
     if (payload.opportunity) {
       formModel.opportunityId = payload.opportunity.id
-      formModel.tenantId = payload.opportunity.tenantId
     }
     await nextTick()
     formRef.value?.clearValidate()
@@ -516,13 +485,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
         } finally {
           api.setLoading(false)
@@ -532,17 +494,6 @@
     })
   }
 
-  watch(
-    () => formModel.tenantId,
-    async (tenantId, previous) => {
-      if (!tenantId || tenantId === previous || dialogType.value !== 'add') return
-      formModel.organizationId = undefined
-      formModel.positionId = undefined
-      formModel.hiringManagerEmployeeId = undefined
-      formModel.employeeId = undefined
-      await loadReferences()
-    }
-  )
   watch(
     () => formModel.organizationId,
     () => {

@@ -37,7 +37,6 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchEmployeeOrganizationOptions, saveEmployeeExperienceRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -49,16 +48,14 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const organizationOptions = ref<Array<{ label: string; value: string }>>([])
 
   const createInitialModel = (): Api.Hr.EmployeeExperienceSurvey => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     surveyCode: '',
     surveyName: '',
     surveyType: 'pulse',
@@ -76,24 +73,6 @@
 
   const formItems = computed<FormItem[]>(() => {
     const items: FormItem[] = []
-    if (isPlatformSuper.value) {
-      items.push({
-        label: '所属租户',
-        key: 'tenantId',
-        type: 'select',
-        span: 24,
-        options: tenantOptions.value,
-        props: {
-          filterable: true,
-          disabled: Boolean(formModel.id),
-          placeholder: '请选择调查所属租户',
-          onChange: async () => {
-            formModel.audienceOrganizationId = null
-            await loadOrganizations()
-          }
-        }
-      })
-    }
     items.push(
       { label: '调查识别', key: 'identity', type: 'divider', span: 24 },
       {
@@ -105,7 +84,7 @@
           placeholder: '例如 ENGAGEMENT-2027-Q1',
           disabled: dialogType.value === 'edit'
         },
-        help: '编码用于跨周期追踪，同一租户内不可重复'
+        help: '编码用于跨周期追踪，系统内不可重复'
       },
       {
         label: '调查名称',
@@ -191,9 +170,6 @@
     model: formModel,
     items: formItems,
     rules: computed(() => ({
-      tenantId: isPlatformSuper.value
-        ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-        : [],
       surveyCode: [{ required: true, message: '请输入调查编码', trigger: 'blur' }],
       surveyName: [{ required: true, message: '请输入调查名称', trigger: 'blur' }],
       surveyType: [{ required: true, message: '请选择调查类型', trigger: 'change' }],
@@ -209,20 +185,8 @@
     }))
   })
 
-  const loadTenants = async (): Promise<void> => {
-    if (!isPlatformSuper.value || tenantOptions.value.length) return
-    const response = await fetchGetEnableTenantList()
-    tenantOptions.value = (response.data ?? []).map((tenant) => ({
-      label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-      value: tenant.id!
-    }))
-  }
   const loadOrganizations = async (): Promise<void> => {
-    if (!formModel.tenantId) {
-      organizationOptions.value = []
-      return
-    }
-    const response = await fetchEmployeeOrganizationOptions({ tenantId: formModel.tenantId })
+    const response = await fetchEmployeeOrganizationOptions()
     organizationOptions.value = (response.data ?? []).map((organization) => ({
       label: `${organization.organizationName} · ${organization.organizationCode}`,
       value: organization.id!
@@ -271,7 +235,7 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          await Promise.all([loadTenants(), loadOrganizations()])
+          await Promise.all([loadOrganizations()])
         } finally {
           api.setLoading(false)
         }

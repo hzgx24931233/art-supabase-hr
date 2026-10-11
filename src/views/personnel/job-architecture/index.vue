@@ -78,7 +78,6 @@
     type HrEntityNavigationItem
   } from '../../shared/hr-entity-navigation.vue'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
@@ -141,8 +140,7 @@
 
   const { confirmAction } = useArtFeedback()
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
-  const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
+  const { getDictMap } = storeToRefs(userStore)
   const activeEntity = ref<Entity>('profile')
   const activeTab = computed(() => tabs.find((tab) => tab.entity === activeEntity.value) ?? tabs[0])
   const tableQueryRef = ref<ArtTableQueryExpose>()
@@ -150,7 +148,6 @@
   const tableState = reactive<{ searchQuery: Api.Hr.JobArchitectureSearchParams }>({
     searchQuery: { enabled: undefined, keyword: '' }
   })
-  const selectedTenantId = computed(() => effectiveTenantId.value ?? '')
   const overview = reactive({ total: 0, enabled: 0, references: 0 })
   const booleanOptions = computed(() =>
     (getDictMap.value.commonBoolean ?? []).map((item) => ({
@@ -202,16 +199,6 @@
   ])
 
   const commonColumns = (): ColumnOption<RecordItem>[] => [
-    ...(isPlatformSuper.value
-      ? [
-          {
-            prop: 'tenant.tenantName',
-            label: '所属租户',
-            minWidth: 160,
-            showOverflowTooltip: true
-          } as ColumnOption<RecordItem>
-        ]
-      : []),
     {
       prop: 'enabled',
       label: '状态',
@@ -249,7 +236,7 @@
   const columnsFactory = (): ColumnOption<RecordItem>[] => {
     if (activeEntity.value === 'family')
       return [
-        ...commonColumns().slice(0, isPlatformSuper.value ? 1 : 0),
+        ...commonColumns(),
         { prop: 'familyCode', label: '职族编码', minWidth: 150, showOverflowTooltip: true },
         { prop: 'familyName', label: '职族名称', minWidth: 200, showOverflowTooltip: true },
         {
@@ -259,12 +246,12 @@
           align: 'right',
           formatter: (row) => `${(row as Api.Hr.JobFamily).jobProfileCount ?? 0} 个`
         },
-        ...commonColumns().slice(isPlatformSuper.value ? 1 : 0),
+        ...commonColumns(),
         actionColumn()
       ]
     if (activeEntity.value === 'grade')
       return [
-        ...commonColumns().slice(0, isPlatformSuper.value ? 1 : 0),
+        ...commonColumns(),
         { prop: 'gradeCode', label: '职级编码', minWidth: 140, showOverflowTooltip: true },
         { prop: 'gradeName', label: '职级名称', minWidth: 180, showOverflowTooltip: true },
         { prop: 'gradeLevel', label: '层级值', width: 100, align: 'right' },
@@ -275,11 +262,11 @@
           align: 'right',
           formatter: (row) => `${(row as Api.Hr.Grade).jobProfileCount ?? 0} 个`
         },
-        ...commonColumns().slice(isPlatformSuper.value ? 1 : 0),
+        ...commonColumns(),
         actionColumn()
       ]
     return [
-      ...commonColumns().slice(0, isPlatformSuper.value ? 1 : 0),
+      ...commonColumns(),
       { prop: 'jobCode', label: '职务编码', minWidth: 150, showOverflowTooltip: true },
       { prop: 'jobName', label: '标准职务', minWidth: 200, showOverflowTooltip: true },
       { prop: 'family.familyName', label: '所属职族', minWidth: 160, showOverflowTooltip: true },
@@ -297,7 +284,7 @@
         align: 'right',
         formatter: (row) => `${(row as Api.Hr.JobProfile).positionCount ?? 0} 个`
       },
-      ...commonColumns().slice(isPlatformSuper.value ? 1 : 0),
+      ...commonColumns(),
       actionColumn()
     ]
   }
@@ -314,7 +301,6 @@
     const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
     return fetchJobArchitectureList(activeEntity.value, {
       ...params,
-      tenantId: selectedTenantId.value || undefined,
       from,
       to
     })

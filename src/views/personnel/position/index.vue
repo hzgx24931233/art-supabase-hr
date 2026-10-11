@@ -24,7 +24,6 @@
                 :loading="organizationFilterLoading"
                 :selected-key="selectedOrganizationKey"
                 :include-descendants="includeDescendantOrganizations"
-                :global-scope="isAllTenants"
                 @select="handleOrganizationSelect"
                 @refresh="loadOrganizationTree"
                 @update:include-descendants="handleIncludeDescendantsChange"
@@ -78,7 +77,6 @@
           :loading="organizationFilterLoading"
           :selected-key="selectedOrganizationKey"
           :include-descendants="includeDescendantOrganizations"
-          :global-scope="isAllTenants"
           @select="handleOrganizationSelect"
           @refresh="loadOrganizationTree"
           @update:include-descendants="handleIncludeDescendantsChange"
@@ -117,7 +115,6 @@
   import { formatWithDayjs } from '@/utils/time'
   import TreeUtils from '@/utils/tree'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { deletePosition, fetchPositionList, fetchPositionOrganizationTree } from '@hr/api'
   import PositionDialog from './modules/position-dialog.vue'
 
@@ -144,8 +141,7 @@
   const ALL_ORGANIZATIONS_KEY = '__all_organizations__'
   const { confirmAction } = useArtFeedback()
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
-  const { effectiveTenantId, isAllTenants } = storeToRefs(useTenantScopeStore())
+  const { getDictMap } = storeToRefs(userStore)
   const organizationTreeUtils = new TreeUtils({
     idKey: 'id',
     parentKey: 'parentId',
@@ -159,7 +155,6 @@
   const organizationFilterLoading = ref(false)
   const selectedOrganizationKey = ref(ALL_ORGANIZATIONS_KEY)
   const includeDescendantOrganizations = ref(true)
-  const selectedTenantId = computed(() => effectiveTenantId.value ?? '')
   const overview = reactive<{ total: number; rows: PositionOverviewRow[] }>({ total: 0, rows: [] })
   const tableState = reactive<{ searchQuery: SearchParams }>({
     searchQuery: { enabled: undefined, keyword: '' }
@@ -246,16 +241,6 @@
   ])
 
   const columnsFactory = (): ColumnOption<Position>[] => [
-    ...(isPlatformSuper.value && !selectedTenantId.value
-      ? [
-          {
-            prop: 'tenant.tenantName',
-            label: '所属租户',
-            minWidth: 170,
-            showOverflowTooltip: true
-          } as ColumnOption<Position>
-        ]
-      : []),
     {
       prop: 'positionCode',
       label: '岗位编码',
@@ -361,7 +346,6 @@
     const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
     return fetchPositionList({
       ...params,
-      tenantId: selectedTenantId.value || undefined,
       organizationIds: selectedOrganizationIds.value,
       from,
       to
@@ -379,7 +363,7 @@
   const loadOrganizationTree = async (): Promise<void> => {
     organizationFilterLoading.value = true
     try {
-      const response = await fetchPositionOrganizationTree({ tenantId: selectedTenantId.value })
+      const response = await fetchPositionOrganizationTree()
       organizationTree.value = response.data ?? []
       if (
         selectedOrganizationKey.value !== ALL_ORGANIZATIONS_KEY &&

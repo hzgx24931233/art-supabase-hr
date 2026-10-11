@@ -159,16 +159,12 @@
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import type { ArtUserSelectOption } from '@/components/core/forms/art-user-select/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import {
     fetchCompensationOptions,
@@ -182,7 +178,6 @@
 
   interface CompensationFormModel {
     id?: string
-    tenantId?: string
     componentCode: string
     componentName: string
     category: Api.Hr.CompensationComponentCategory
@@ -237,11 +232,10 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('employee')
-  const tenantOptions = ref<FormItemOption[]>([])
   const componentOptions = shallowRef<Api.Hr.CompensationReference[]>([])
   const planOptions = shallowRef<Api.Hr.CompensationPlan[]>([])
   const employeeOptions = shallowRef<Api.Hr.CompensationReference[]>([])
@@ -250,7 +244,6 @@
   const employeeItems = ref<EmployeeCompensationItemEditor[]>([])
 
   const createInitialModel = (): CompensationFormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     componentCode: '',
     componentName: '',
     category: 'earning',
@@ -311,24 +304,15 @@
   })
 
   const loadReferenceData = async (): Promise<void> => {
-    const tenantId = form.model.tenantId
-    if (!tenantId) {
-      componentOptions.value = []
-      planOptions.value = []
-      employeeOptions.value = []
-      gradeOptions.value = []
-      return
-    }
     const [components, plans, employees, grades] = await Promise.all([
-      fetchCompensationOptions('component', tenantId),
+      fetchCompensationOptions('component'),
       fetchCompensationRecords<Api.Hr.CompensationPlan>('plan', {
-        tenantId,
         status: 'enabled',
         from: 0,
         to: 499
       }),
-      fetchCompensationOptions('employee', tenantId),
-      fetchCompensationOptions('grade', tenantId)
+      fetchCompensationOptions('employee'),
+      fetchCompensationOptions('grade')
     ])
     componentOptions.value = components.data ?? []
     planOptions.value = plans.data ?? []
@@ -356,19 +340,6 @@
         : employeeOptions.value.map(toEmployeeOption),
       'value'
     )
-  }
-
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(form.model, { employeeId: undefined, planId: undefined, gradeId: null })
-    planItems.value = []
-    employeeItems.value = []
-    await loadReferenceData()
-    await nextTick()
-    await Promise.all([
-      formRef.value?.reloadOptions('employeeId'),
-      formRef.value?.reloadOptions('planId'),
-      formRef.value?.reloadOptions('gradeId')
-    ])
   }
 
   const handleEmployeeChange = (employeeId?: string): void => {
@@ -404,25 +375,8 @@
   const form = reactive<FormState>({
     model: formModel,
     items: computed(() => {
-      const tenant: FormItem[] = isPlatformSuper.value
-        ? [
-            {
-              label: '所属租户',
-              key: 'tenantId',
-              type: 'select',
-              span: 24,
-              props: {
-                options: tenantOptions.value,
-                filterable: true,
-                placeholder: '请选择所属租户',
-                onChange: () => void handleTenantChange()
-              }
-            }
-          ]
-        : []
       if (entity.value === 'component')
         return [
-          ...tenant,
           {
             label: '项目编码',
             key: 'componentCode',
@@ -460,7 +414,6 @@
         ]
       if (entity.value === 'plan')
         return [
-          ...tenant,
           {
             label: '方案编码',
             key: 'planCode',
@@ -497,7 +450,6 @@
         ]
       if (entity.value === 'band')
         return [
-          ...tenant,
           {
             label: '适用职级',
             key: 'gradeId',
@@ -553,7 +505,6 @@
           }
         ]
       return [
-        ...tenant,
         {
           label: '员工',
           key: 'employeeId',
@@ -625,9 +576,6 @@
     }),
     rules: computed(() => {
       const rules: FormRules<CompensationFormModel> = {
-        tenantId: isPlatformSuper.value
-          ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-          : [],
         currencyCode: [
           { required: true, message: '请输入币种', trigger: 'blur' },
           { pattern: /^[A-Z]{3}$/, message: '币种须为 3 位大写字母', trigger: 'blur' }
@@ -683,7 +631,7 @@
   }
 
   const toRecord = (): RecordItem => {
-    const common = { id: form.model.id, tenantId: form.model.tenantId }
+    const common = { id: form.model.id }
     if (entity.value === 'component')
       return {
         ...common,
@@ -783,19 +731,12 @@
       subtitle:
         nextEntity === 'employee'
           ? '保存为草稿，批准后按生效日期进入员工薪酬历史并供财务核算读取'
-          : '维护统一、可审计且按租户隔离的企业薪酬政策',
+          : '维护统一、可审计的企业薪酬政策',
       confirmText: row ? '保存更改' : '创建草稿',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferenceData()
           if (nextEntity === 'employee' && row) applySelectedPlan(form.model.planId, true)
           await nextTick()

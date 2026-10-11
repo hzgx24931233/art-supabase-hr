@@ -44,8 +44,6 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
-  import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { fetchPolicyAcknowledgementOptions, savePolicyDocument } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -57,7 +55,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     policyCode: string
     policyTitle: string
     category: string
@@ -79,21 +76,17 @@
   }
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
-  const userStore = useUserStore()
   const policyCategoryOptions = useDictionaryOptions('hrPolicyCategory')
   const audienceTypeOptions = useDictionaryOptions('hrPolicyAudienceType')
   const audienceEmploymentTypeOptions = useDictionaryOptions('hrPolicyAudienceEmploymentType')
-  const { getUserInfo, isPlatformSuper } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const organizationOptions = ref<Array<{ label: string; value: string }>>([])
   const policyOptions = ref<Array<{ label: string; value: string }>>([])
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     policyCode: '',
     policyTitle: '',
     category: '',
@@ -110,23 +103,7 @@
   })
   const formModel = reactive<FormModel>(createInitialModel())
 
-  const tenantItems = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            span: 24,
-            options: tenantOptions.value,
-            props: { filterable: true, placeholder: '请选择所属租户' }
-          }
-        ]
-      : []
-  )
-
   const formItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '版本身份', key: 'versionIdentity', type: 'divider', span: 24 },
     { label: '政策编码', key: 'policyCode', type: 'input', props: { maxlength: 40 } },
     { label: '政策名称', key: 'policyTitle', type: 'input', props: { maxlength: 160 } },
@@ -209,9 +186,6 @@
   ])
 
   const formRules = computed<FormRules<FormModel>>(() => ({
-    tenantId: isPlatformSuper.value
-      ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-      : [],
     policyCode: [{ required: true, message: '请输入政策编码', trigger: 'blur' }],
     policyTitle: [{ required: true, message: '请输入政策名称', trigger: 'blur' }],
     category: [{ required: true, message: '请选择或输入政策分类', trigger: 'change' }],
@@ -238,10 +212,9 @@
   }>({ model: formModel, items: formItems, rules: formRules })
 
   const loadReferences = async (): Promise<void> => {
-    if (!formModel.tenantId && isPlatformSuper.value) return
     const [organizationResponse, policyResponse] = await Promise.all([
-      fetchPolicyAcknowledgementOptions('organization', formModel.tenantId),
-      fetchPolicyAcknowledgementOptions('policy', formModel.tenantId)
+      fetchPolicyAcknowledgementOptions('organization'),
+      fetchPolicyAcknowledgementOptions('policy')
     ])
     organizationOptions.value = (organizationResponse.data ?? []).map((item) => ({
       label: `${item.name}${item.code ? `（${item.code}）` : ''}`,
@@ -269,7 +242,6 @@
 
   const toRecord = (): Api.Hr.HrPolicyDocument => ({
     id: formModel.id,
-    tenantId: formModel.tenantId,
     policyCode: formModel.policyCode.trim(),
     policyTitle: formModel.policyTitle.trim(),
     category: formModel.category.trim(),
@@ -313,13 +285,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
         } finally {
           api.setLoading(false)
@@ -329,15 +294,6 @@
     })
   }
 
-  watch(
-    () => formModel.tenantId,
-    async (tenantId, previousTenantId) => {
-      if (!tenantId || tenantId === previousTenantId || dialogType.value !== 'add') return
-      formModel.audienceOrganizationId = undefined
-      formModel.supersedesPolicyId = undefined
-      await loadReferences()
-    }
-  )
   watch(
     () => formModel.audienceType,
     (audienceType) => {

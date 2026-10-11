@@ -44,9 +44,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { fetchContingentWorkforceOptions, saveContingentWorkforceRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -63,7 +61,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     vendorCode: string
     vendorName: string
     registrationNo?: string
@@ -120,19 +117,16 @@
   }
 
   const emit = defineEmits<{ success: [entity: Entity, type: DialogType] }>()
-  const userStore = useUserStore()
   const riskLevelOptions = useDictionaryOptions('hrContingentVendorRiskLevel')
   const workerTypeOptions = useDictionaryOptions('hrContingentWorkerType')
   const billingUnitOptions = useDictionaryOptions('hrContingentBillingUnit')
   const controlTypeOptions = useDictionaryOptions('hrContingentControlType')
   const controlStatusOptions = useDictionaryOptions('hrContingentControlStatus')
-  const { getUserInfo, isPlatformSuper } = storeToRefs(userStore)
   const { hasAuth } = useAuth()
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('engagement')
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const references = reactive({
     vendors: [] as Api.Hr.ContingentWorkforceReference[],
     workers: [] as Api.Hr.ContingentWorkforceReference[],
@@ -144,7 +138,6 @@
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     vendorCode: '',
     vendorName: '',
     registrationNo: undefined,
@@ -202,22 +195,7 @@
       value: item.id
     }))
 
-  const commonTenantItems = (): FormItem[] =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            span: 24,
-            options: tenantOptions.value,
-            props: { filterable: true, placeholder: '请选择所属租户' }
-          }
-        ]
-      : []
-
   const vendorItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '供应商身份', key: 'vendorIdentity', type: 'divider', span: 24 },
     { label: '供应商编码', key: 'vendorCode', type: 'input', props: { maxlength: 40 } },
     { label: '供应商名称', key: 'vendorName', type: 'input', props: { maxlength: 120 } },
@@ -247,7 +225,6 @@
   ])
 
   const workerItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '人员身份', key: 'workerIdentity', type: 'divider', span: 24 },
     { label: '外部人员编号', key: 'workerNo', type: 'input', props: { maxlength: 40 } },
     { label: '姓名', key: 'workerName', type: 'input', props: { maxlength: 80 } },
@@ -283,7 +260,6 @@
     )
   )
   const engagementItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '任务归属', key: 'engagementIdentity', type: 'divider', span: 24 },
     { label: '用工任务编号', key: 'engagementNo', type: 'input', props: { maxlength: 40 } },
     {
@@ -365,7 +341,6 @@
   ])
 
   const controlItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '控制对象', key: 'controlTarget', type: 'divider', span: 24 },
     {
       label: '用工任务',
@@ -417,9 +392,6 @@
             : controlItems.value
     ),
     rules: computed(() => ({
-      tenantId: isPlatformSuper.value
-        ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-        : [],
       vendorCode:
         entity.value === 'vendor' ? [{ required: true, message: '请输入供应商编码' }] : [],
       vendorName:
@@ -536,7 +508,6 @@
     if (entity.value === 'vendor')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         vendorCode: formModel.vendorCode.trim(),
         vendorName: formModel.vendorName.trim(),
         registrationNo: normalizeNullableText(formModel.registrationNo),
@@ -555,7 +526,6 @@
     if (entity.value === 'worker')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         workerNo: formModel.workerNo.trim(),
         workerName: formModel.workerName.trim(),
         workerType: formModel.workerType,
@@ -570,7 +540,6 @@
     if (entity.value === 'engagement')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         engagementNo: formModel.engagementNo.trim(),
         workerId: formModel.workerId!,
         vendorId: formModel.vendorId || null,
@@ -593,7 +562,6 @@
       }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       engagementId: formModel.engagementId!,
       controlType: formModel.controlType,
       controlName: formModel.controlName.trim(),
@@ -637,8 +605,6 @@
   }
 
   const loadReferences = async (): Promise<void> => {
-    if (!formModel.tenantId && isPlatformSuper.value) return
-    const tenantId = formModel.tenantId
     const kinds =
       entity.value === 'worker'
         ? (['vendor'] as const)
@@ -647,9 +613,7 @@
           : entity.value === 'control'
             ? (['engagement'] as const)
             : ([] as const)
-    const responses = await Promise.all(
-      kinds.map((kind) => fetchContingentWorkforceOptions(kind, tenantId))
-    )
+    const responses = await Promise.all(kinds.map((kind) => fetchContingentWorkforceOptions(kind)))
     kinds.forEach((kind, index) => {
       const key = `${kind}s` as keyof typeof references
       references[key] = responses[index]?.data ?? []
@@ -663,7 +627,6 @@
     if (payload.editData) setFromRecord(payload.editData)
     if (payload.engagement) {
       formModel.engagementId = payload.engagement.id
-      formModel.tenantId = payload.engagement.tenantId
       formModel.dueDate = payload.engagement.startDate
     }
     await nextTick()
@@ -676,13 +639,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
         } finally {
           api.setLoading(false)
@@ -692,19 +648,6 @@
     })
   }
 
-  watch(
-    () => formModel.tenantId,
-    async (tenantId, previousTenantId) => {
-      if (!tenantId || tenantId === previousTenantId || dialogType.value !== 'add') return
-      formModel.vendorId = undefined
-      formModel.workerId = undefined
-      formModel.organizationId = undefined
-      formModel.positionId = undefined
-      formModel.sponsorEmployeeId = undefined
-      formModel.engagementId = undefined
-      await loadReferences()
-    }
-  )
   watch(
     () => formModel.organizationId,
     (organizationId, previousOrganizationId) => {

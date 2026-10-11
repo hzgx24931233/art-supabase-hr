@@ -23,7 +23,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="selections.owner"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择周期负责人"
           />
         </template>
@@ -31,7 +30,6 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="selections.employee"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择被考核员工"
           />
         </template>
@@ -39,7 +37,6 @@
           <ArtEmployeeSelect
             v-model="form.model.reviewerEmployeeId"
             v-model:selected-data="selections.reviewer"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择评价主管"
           />
         </template>
@@ -47,7 +44,6 @@
           <ArtEmployeeSelect
             v-model="form.model.facilitatorEmployeeId"
             v-model:selected-data="selections.facilitator"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择沟通或校准负责人"
           />
         </template>
@@ -61,13 +57,9 @@
   import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchPerformanceOptions, savePerformanceRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -77,7 +69,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     cycleCode: string
     cycleName: string
     startDate: string
@@ -137,11 +128,10 @@
 
   const emit = defineEmits<{ success: [type: DialogType, entity: Entity] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('cycle')
-  const tenantOptions = ref<FormItemOption[]>([])
   const cycleOptions = shallowRef<Api.Hr.PerformanceReference[]>([])
   const reviewOptions = shallowRef<Api.Hr.PerformanceReference[]>([])
   const organizationOptions = shallowRef<Api.Hr.PerformanceReference[]>([])
@@ -153,7 +143,6 @@
   })
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     cycleCode: '',
     cycleName: '',
     startDate: dayjs().startOf('year').format('YYYY-MM-DD'),
@@ -200,24 +189,6 @@
   })
 
   const formModel = reactive<FormModel>(createInitialModel())
-  const commonItems = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: {
-              filterable: true,
-              placeholder: '请选择所属租户',
-              onChange: handleTenantChange
-            }
-          }
-        ]
-      : []
-  )
-
   const form = reactive<{
     model: FormModel
     items: ComputedRef<FormItem[]>
@@ -225,10 +196,8 @@
   }>({
     model: formModel,
     items: computed(() => {
-      const common = commonItems.value
       if (entity.value === 'cycle')
         return [
-          ...common,
           input('cycleCode', '周期编码', '如 PERF_2027_ANNUAL'),
           input('cycleName', '周期名称', '如 2027 年度绩效周期'),
           { label: '周期负责人', key: 'ownerEmployeeId', type: 'input' },
@@ -242,14 +211,12 @@
         ]
       if (entity.value === 'review')
         return [
-          ...common,
           select('cycleId', '绩效周期', cycleOptions.value, '请选择草稿或执行中的周期'),
           { label: '被考核员工', key: 'employeeId', type: 'input' },
           { label: '评价主管', key: 'reviewerEmployeeId', type: 'input' }
         ]
       if (entity.value === 'goal')
         return [
-          ...common,
           select('reviewId', '员工考核', reviewOptions.value, '请选择员工考核'),
           input('goalName', '目标名称', '使用可识别的业务结果命名'),
           dict('goalType', '目标类型', 'hrPerformanceGoalType'),
@@ -265,7 +232,6 @@
         ]
       if (entity.value === 'check_in')
         return [
-          ...common,
           select('reviewId', '员工考核', reviewOptions.value, '请选择执行中的员工考核'),
           { label: '沟通负责人', key: 'facilitatorEmployeeId', type: 'input' },
           date('checkInDate', '沟通日期'),
@@ -278,7 +244,6 @@
         ]
       if (entity.value === 'calibration')
         return [
-          ...common,
           input('sessionNo', '会议编号', '如 CAL_2027_ANNUAL_01'),
           input('sessionName', '会议名称', '如 运营条线年度绩效校准会'),
           select('cycleId', '绩效周期', cycleOptions.value, '请选择执行或评议中的周期'),
@@ -294,7 +259,6 @@
           textarea('distributionNote', '校准口径', '说明评分尺度、分布参考及需重点讨论的群体')
         ]
       return [
-        ...common,
         number('originalScore', '主管原始评分', { min: 0, max: 100, precision: 2, disabled: true }),
         dict('originalLevel', '主管原始等级', 'hrPerformanceLevel', true),
         number('calibratedScore', '校准后评分', { min: 0, max: 100, precision: 2 }),
@@ -303,9 +267,7 @@
       ]
     }),
     rules: computed(() => {
-      const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value ? required('请选择所属租户', 'change') : []
-      }
+      const rules: FormRules<FormModel> = {}
       if (entity.value === 'cycle')
         Object.assign(rules, {
           cycleCode: required('请输入周期编码', 'blur'),
@@ -359,7 +321,7 @@
       review: {
         icon: 'ri:user-star-line',
         title: '评价对象与主管关系明确',
-        description: '员工与评价主管分别选择，绩效结果始终归属同一周期和租户。'
+        description: '员工与评价主管分别选择，绩效结果始终归属同一周期。'
       },
       goal: {
         icon: 'ri:focus-2-line',
@@ -462,34 +424,14 @@
   }
 
   const loadReferences = async (): Promise<void> => {
-    if (isPlatformSuper.value && !formModel.tenantId) {
-      cycleOptions.value = []
-      reviewOptions.value = []
-      organizationOptions.value = []
-      return
-    }
     const [cycles, reviews, organizations] = await Promise.all([
-      fetchPerformanceOptions('cycle', formModel.tenantId),
-      fetchPerformanceOptions('review', formModel.tenantId),
-      fetchPerformanceOptions('organization', formModel.tenantId)
+      fetchPerformanceOptions('cycle'),
+      fetchPerformanceOptions('review'),
+      fetchPerformanceOptions('organization')
     ])
     cycleOptions.value = cycles.data ?? []
     reviewOptions.value = reviews.data ?? []
     organizationOptions.value = organizations.data ?? []
-  }
-
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(formModel, {
-      cycleId: undefined,
-      reviewId: undefined,
-      employeeId: undefined,
-      reviewerEmployeeId: undefined,
-      ownerEmployeeId: undefined,
-      facilitatorEmployeeId: undefined,
-      organizationId: undefined
-    })
-    resetSelections()
-    await loadReferences()
   }
 
   const validateBusiness = (): void => {
@@ -522,7 +464,6 @@
     if (entity.value === 'cycle')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         cycleCode: formModel.cycleCode,
         cycleName: formModel.cycleName,
         startDate: formModel.startDate,
@@ -538,7 +479,6 @@
     if (entity.value === 'review')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         cycleId: formModel.cycleId!,
         employeeId: formModel.employeeId!,
         reviewerEmployeeId: formModel.reviewerEmployeeId,
@@ -547,7 +487,6 @@
     if (entity.value === 'goal')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         reviewId: formModel.reviewId!,
         goalName: formModel.goalName,
         targetDescription: formModel.targetDescription,
@@ -564,7 +503,6 @@
     if (entity.value === 'check_in')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         reviewId: formModel.reviewId!,
         checkInDate: formModel.checkInDate,
         progressPercent: Number(formModel.progressPercent),
@@ -578,7 +516,6 @@
     if (entity.value === 'calibration')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         sessionNo: formModel.sessionNo,
         sessionName: formModel.sessionName,
         cycleId: formModel.cycleId!,
@@ -590,7 +527,6 @@
       }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       sessionId: formModel.sessionId!,
       reviewId: formModel.reviewId!,
       originalScore: Number(formModel.originalScore),
@@ -664,13 +600,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const tenants = await fetchGetEnableTenantList()
-            tenantOptions.value = (tenants.data ?? []).map((tenant) => ({
-              label: tenant.tenantName,
-              value: tenant.id
-            }))
-          }
           await loadReferences()
           await nextTick()
           formRef.value?.clearValidate()

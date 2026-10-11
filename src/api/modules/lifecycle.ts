@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchLifecycleOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchLifecycleOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.LifecycleOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_lifecycle_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_lifecycle_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -33,8 +29,7 @@ export async function fetchLifecycleRecords<TRecord extends Api.Hr.LifecycleReco
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
           p_case_id: params.caseId || null,
-          p_template_id: params.templateId || null,
-          p_tenant_id: params.tenantId || null
+          p_template_id: params.templateId || null
         }),
         options
       ),
@@ -45,15 +40,13 @@ export async function fetchLifecycleRecords<TRecord extends Api.Hr.LifecycleReco
 
 export async function fetchLifecycleOptions(
   kind: Api.Hr.LifecycleOptionKind,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.LifecycleReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_lifecycle_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),

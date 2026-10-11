@@ -54,7 +54,6 @@
 
   const createInitialModel = (): Api.Hr.BenefitOption => ({
     id: undefined,
-    tenantId: undefined,
     planId: '',
     optionCode: '',
     optionName: '',
@@ -182,7 +181,6 @@
     dialogType.value = payload.type
     plan.value = payload.plan
     Object.assign(formModel, createInitialModel(), payload.editData ?? {}, {
-      tenantId: payload.plan.tenantId,
       planId: payload.plan.id
     })
     await nextTick()
@@ -195,7 +193,7 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          const response = await fetchCompensationOptions('component', payload.plan.tenantId)
+          const response = await fetchCompensationOptions('component')
           componentOptions.value = response.data ?? []
         } finally {
           api.setLoading(false)

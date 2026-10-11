@@ -6,18 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchContingentWorkforceOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchContingentWorkforceOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.ContingentWorkforceOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_contingent_workforce_overview_secure', {
-          p_tenant_id: tenantId || null
-        }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_contingent_workforce_overview_secure', {}), options),
     { showErrorMessage: true }
   )
 }
@@ -39,8 +30,7 @@ export async function fetchContingentWorkforceRecords<
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_engagement_id: params.engagementId || null,
-          p_tenant_id: params.tenantId || null
+          p_engagement_id: params.engagementId || null
         }),
         options
       ),
@@ -57,15 +47,13 @@ export async function fetchContingentWorkforceRecords<
 
 export async function fetchContingentWorkforceOptions(
   kind: 'vendor' | 'worker' | 'organization' | 'position' | 'sponsor' | 'engagement',
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.ContingentWorkforceReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_contingent_workforce_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),

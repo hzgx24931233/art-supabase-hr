@@ -6,16 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchInternalMobilityOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchInternalMobilityOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.InternalMobilityOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_internal_mobility_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_internal_mobility_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -35,8 +28,7 @@ export async function fetchInternalMobilityRecords<TRecord extends Api.Hr.Intern
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_opportunity_id: params.opportunityId || null,
-          p_tenant_id: params.tenantId || null
+          p_opportunity_id: params.opportunityId || null
         }),
         options
       ),
@@ -52,14 +44,12 @@ export async function fetchInternalMobilityRecords<TRecord extends Api.Hr.Intern
 }
 
 export async function fetchInternalMobilityOptions(
-  kind: 'organization' | 'position' | 'employee' | 'opportunity',
-  tenantId?: string
+  kind: 'organization' | 'position' | 'employee' | 'opportunity'
 ) {
   return await responseHandle<Api.Hr.InternalMobilityReference[]>(
     () =>
       supabase.rpc('hr_list_internal_mobility_options_secure', {
-        p_kind: kind,
-        p_tenant_id: tenantId || null
+        p_kind: kind
       }),
     { showErrorMessage: true }
   )

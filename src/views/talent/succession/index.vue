@@ -126,7 +126,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     deleteSuccessionRecord,
     fetchSuccessionOverview,
@@ -176,15 +175,14 @@
     }
   ]
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('plan')
   const activeTab = computed(() => tabs.find((tab) => tab.entity === activeEntity.value) ?? tabs[0])
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const tableState = reactive<{ searchQuery: Api.Hr.SuccessionSearchParams }>({
-    searchQuery: { tenantId: '', status: '', keyword: '' }
+    searchQuery: { status: '', keyword: '' }
   })
   const overview = reactive<Api.Hr.SuccessionOverview>({
     activePlanCount: 0,
@@ -284,14 +282,6 @@
   )
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: { clearable: true, filterable: true, placeholder: '全部租户' }
-      })
     items.push(
       {
         label: '状态',
@@ -715,7 +705,7 @@
     tableTotal.value = response.total ?? 0
   }
   const refreshOverview = async () => {
-    const response = await fetchSuccessionOverview(tableState.searchQuery.tenantId)
+    const response = await fetchSuccessionOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const openDialog = (entity: Entity, row?: RecordItem) =>
@@ -795,13 +785,6 @@
         'hrSuccessionActionStatus'
       ].map((code) => userStore.ensureDictLoaded(code))
     )
-    if (isPlatformSuper.value) {
-      const response = await fetchGetEnableTenantList()
-      tenantOptions.value = (response.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await refreshOverview()
   })
 </script>

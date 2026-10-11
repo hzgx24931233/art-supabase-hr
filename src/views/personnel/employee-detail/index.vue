@@ -212,11 +212,6 @@
 
   const employmentItems: DescriptionItem[] = [
     {
-      key: 'tenant',
-      label: '所属租户',
-      value: (data: Partial<EmployeeProfile>) => data.tenant?.tenantName
-    },
-    {
       key: 'organization',
       label: '所属组织',
       value: (data: Partial<EmployeeProfile>) => data.organization?.organizationName

@@ -215,7 +215,7 @@
   const tableTotal = ref(0)
   const focusedPolicy = ref<Api.Hr.HrPolicyDocument | null>(null)
   const tableState = reactive<{ searchQuery: Api.Hr.PolicyAcknowledgementSearchParams }>({
-    searchQuery: { keyword: '', status: '', tenantId: '' }
+    searchQuery: { keyword: '', status: '' }
   })
   const overview = reactive<Api.Hr.PolicyAcknowledgementOverview>({
     draftPolicyCount: 0,
@@ -634,7 +634,7 @@
     tableTotal.value = response.total ?? 0
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchPolicyAcknowledgementOverview(tableState.searchQuery.tenantId)
+    const response = await fetchPolicyAcknowledgementOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const refreshWorkspace = async (): Promise<void> => {

@@ -40,8 +40,7 @@ export async function fetchJobArchitectureList<TRecord extends JobArchitectureRe
           p_from: from,
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
-          p_enabled: params.enabled ?? null,
-          p_tenant_id: params.tenantId || null
+          p_enabled: params.enabled ?? null
         }),
         options
       ),
@@ -56,15 +55,13 @@ export async function fetchJobArchitectureList<TRecord extends JobArchitectureRe
 
 export async function fetchJobArchitectureOptions(
   kind: JobArchitectureEntity,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.JobArchitectureOption[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_job_architecture_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),
@@ -80,7 +77,6 @@ export async function saveJobArchitectureRecord(
   const payload = keysToSnakeDeep(
     omit(record, [
       'id',
-      'tenant',
       'family',
       'defaultGrade',
       'jobProfileCount',

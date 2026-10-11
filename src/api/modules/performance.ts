@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchPerformanceOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchPerformanceOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.PerformanceOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_performance_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_performance_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -33,8 +29,7 @@ export async function fetchPerformanceRecords<TRecord extends Api.Hr.Performance
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
           p_cycle_id: params.cycleId || null,
-          p_session_id: params.sessionId || null,
-          p_tenant_id: params.tenantId || null
+          p_session_id: params.sessionId || null
         }),
         options
       ),
@@ -45,15 +40,13 @@ export async function fetchPerformanceRecords<TRecord extends Api.Hr.Performance
 
 export async function fetchPerformanceOptions(
   kind: Api.Hr.PerformanceOptionKind,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.PerformanceReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_performance_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),

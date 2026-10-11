@@ -8,15 +8,13 @@ const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
 export async function fetchCompensationReviewOverview(
   cycleId?: string,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.CompensationReviewOverview>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_compensation_review_overview_secure', {
-          p_cycle_id: cycleId || null,
-          p_tenant_id: tenantId || null
+          p_cycle_id: cycleId || null
         }),
         options
       ),
@@ -41,8 +39,7 @@ export async function fetchCompensationReviewRecords<
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_cycle_id: params.cycleId || null,
-          p_tenant_id: params.tenantId || null
+          p_cycle_id: params.cycleId || null
         }),
         options
       ),
@@ -58,15 +55,13 @@ export async function fetchCompensationReviewRecords<
 
 export async function fetchCompensationReviewOptions(
   kind: 'cycle' | 'organization',
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.CompensationReviewReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_compensation_review_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),

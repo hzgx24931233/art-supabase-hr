@@ -26,11 +26,7 @@
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { useUserStore } from '@/store/modules/user'
   import { adjustLeaveBalance, fetchAbsenceOptions, saveAbsenceRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -40,7 +36,6 @@
 
   interface AbsenceFormModel {
     id?: string
-    tenantId?: string
     leaveCode: string
     leaveName: string
     category: string
@@ -89,18 +84,16 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('request')
-  const tenantOptions = ref<FormItemOption[]>([])
   const employeeOptions = shallowRef<Api.Hr.AbsenceReference[]>([])
   const leaveTypeOptions = shallowRef<Api.Hr.AbsenceReference[]>([])
   const organizationOptions = shallowRef<Api.Hr.AbsenceReference[]>([])
   const gradeOptions = shallowRef<Api.Hr.AbsenceReference[]>([])
 
   const createInitialModel = (): AbsenceFormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     leaveCode: '',
     leaveName: '',
     category: 'annual',
@@ -148,25 +141,8 @@
   }>({
     model: createInitialModel(),
     items: computed(() => {
-      const common: FormItem[] = isPlatformSuper.value
-        ? [
-            {
-              label: '所属租户',
-              key: 'tenantId',
-              type: 'select',
-              options: tenantOptions.value,
-              props: {
-                filterable: true,
-                placeholder: '请选择所属租户',
-                onChange: handleTenantChange
-              }
-            }
-          ]
-        : []
-
       if (entity.value === 'type')
         return [
-          ...common,
           input('leaveCode', '假别编码', '如 ANNUAL_LEAVE'),
           input('leaveName', '假别名称', '如 年休假'),
           dict('category', '休假类别', 'hrLeaveCategory'),
@@ -187,7 +163,6 @@
       if (entity.value === 'policy') {
         const scopeItem = createScopeItem()
         return [
-          ...common,
           select('leaveTypeId', '假别', leaveTypeOptions.value, '请选择假别'),
           input('policyCode', '政策编码', '如 ANNUAL_STD'),
           input('policyName', '政策名称', '如 全员年休假政策'),
@@ -215,7 +190,6 @@
 
       if (entity.value === 'request')
         return [
-          ...common,
           select('employeeId', '员工', employeeOptions.value, '请选择申请员工'),
           select('leaveTypeId', '假别', leaveTypeOptions.value, '请选择假别'),
           date('startDate', '开始日期'),
@@ -227,7 +201,6 @@
         ]
 
       return [
-        ...common,
         select('employeeId', '员工', employeeOptions.value, '请选择员工'),
         select('leaveTypeId', '假别', leaveTypeOptions.value, '请选择假别'),
         number('balanceYear', '余额年度', { min: 2000, max: 2200, precision: 0 }),
@@ -236,11 +209,7 @@
       ]
     }),
     rules: computed(() => {
-      const rules: FormRules<AbsenceFormModel> = {
-        tenantId: isPlatformSuper.value
-          ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-          : []
-      }
+      const rules: FormRules<AbsenceFormModel> = {}
       if (entity.value === 'type')
         Object.assign(rules, {
           leaveCode: [{ required: true, message: '请输入假别编码', trigger: 'blur' }],
@@ -375,19 +344,11 @@
   }
 
   const loadReferenceData = async (): Promise<void> => {
-    const tenantId = form.model.tenantId
-    if (isPlatformSuper.value && !tenantId) {
-      employeeOptions.value = []
-      leaveTypeOptions.value = []
-      organizationOptions.value = []
-      gradeOptions.value = []
-      return
-    }
     const [employees, leaveTypes, organizations, grades] = await Promise.all([
-      fetchAbsenceOptions('employee', tenantId),
-      fetchAbsenceOptions('leave_type', tenantId),
-      fetchAbsenceOptions('organization', tenantId),
-      fetchAbsenceOptions('grade', tenantId)
+      fetchAbsenceOptions('employee'),
+      fetchAbsenceOptions('leave_type'),
+      fetchAbsenceOptions('organization'),
+      fetchAbsenceOptions('grade')
     ])
     employeeOptions.value = employees.data ?? []
     leaveTypeOptions.value = leaveTypes.data ?? []
@@ -403,15 +364,6 @@
       formRef.value?.reloadOptions('organizationId'),
       formRef.value?.reloadOptions('gradeId')
     ])
-  }
-
-  const handleTenantChange = async (): Promise<void> => {
-    form.model.employeeId = null
-    form.model.leaveTypeId = undefined
-    form.model.organizationId = null
-    form.model.gradeId = null
-    await loadReferenceData()
-    await reloadReferenceFields()
   }
 
   const handleScopeTypeChange = (): void => {
@@ -442,7 +394,7 @@
   }
 
   const toRecord = (): RecordItem => {
-    const common = { id: form.model.id, tenantId: form.model.tenantId }
+    const common = { id: form.model.id }
     if (entity.value === 'type')
       return {
         ...common,
@@ -501,7 +453,6 @@
       validateBusinessRules()
       if (entity.value === 'balance') {
         await adjustLeaveBalance({
-          tenantId: form.model.tenantId,
           employeeId: form.model.employeeId!,
           leaveTypeId: form.model.leaveTypeId!,
           balanceYear: Number(form.model.balanceYear),
@@ -542,19 +493,12 @@
         nextEntity === 'balance'
           ? '调整休假余额'
           : `${row ? '编辑' : '新增'}${titleMap[nextEntity]}`,
-      subtitle: '假勤政策、余额与审批结果全程按租户隔离并保留可审计历史',
+      subtitle: '假勤政策、余额与审批结果全程留痕并保留可审计历史',
       confirmText: nextEntity === 'balance' ? '确认调整' : row ? '保存更改' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferenceData()
           await reloadReferenceFields()
         } finally {

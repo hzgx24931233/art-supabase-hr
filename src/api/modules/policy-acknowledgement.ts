@@ -6,18 +6,10 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchPolicyAcknowledgementOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchPolicyAcknowledgementOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.PolicyAcknowledgementOverview>(
     () =>
-      withRequestOptions(
-        supabase.rpc('hr_policy_acknowledgement_overview_secure', {
-          p_tenant_id: tenantId || null
-        }),
-        options
-      ),
+      withRequestOptions(supabase.rpc('hr_policy_acknowledgement_overview_secure', {}), options),
     { showErrorMessage: true }
   )
 }
@@ -39,8 +31,7 @@ export async function fetchPolicyAcknowledgementRecords<
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_policy_id: params.policyId || null,
-          p_tenant_id: params.tenantId || null
+          p_policy_id: params.policyId || null
         }),
         options
       ),
@@ -54,15 +45,11 @@ export async function fetchPolicyAcknowledgementRecords<
   }
 }
 
-export async function fetchPolicyAcknowledgementOptions(
-  kind: 'organization' | 'policy',
-  tenantId?: string
-) {
+export async function fetchPolicyAcknowledgementOptions(kind: 'organization' | 'policy') {
   return await responseHandle<Api.Hr.PolicyAcknowledgementReference[]>(
     () =>
       supabase.rpc('hr_list_policy_acknowledgement_options_secure', {
-        p_kind: kind,
-        p_tenant_id: tenantId || null
+        p_kind: kind
       }),
     { showErrorMessage: true }
   )

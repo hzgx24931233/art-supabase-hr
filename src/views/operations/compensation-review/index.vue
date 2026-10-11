@@ -287,7 +287,7 @@
   const tableTotal = ref(0)
   const tableAmountAccess = ref(false)
   const tableState = reactive<{ searchQuery: Api.Hr.CompensationReviewSearchParams }>({
-    searchQuery: { keyword: '', status: '', tenantId: '' }
+    searchQuery: { keyword: '', status: '' }
   })
   const overview = reactive<Api.Hr.CompensationReviewOverview>({
     cycleCount: 0,
@@ -946,14 +946,11 @@
   }
 
   const loadCycleOptions = async (): Promise<void> => {
-    const response = await fetchCompensationReviewOptions('cycle', tableState.searchQuery.tenantId)
+    const response = await fetchCompensationReviewOptions('cycle')
     cycleOptions.value = response.data ?? []
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchCompensationReviewOverview(
-      selectedCycleId.value,
-      tableState.searchQuery.tenantId
-    )
+    const response = await fetchCompensationReviewOverview(selectedCycleId.value)
     if (response.data) {
       Object.assign(overview, response.data)
       if (!selectedCycleId.value && response.data.selectedCycle?.id)

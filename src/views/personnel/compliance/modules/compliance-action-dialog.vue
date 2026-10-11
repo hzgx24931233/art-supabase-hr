@@ -28,7 +28,6 @@
           <ArtEmployeeSelect
             v-model="form.model.renewalOwnerId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="record?.tenantId"
             title="选择续签负责人"
             subtitle="负责人承担续签评估、材料和签署跟进"
             placeholder="请选择续签负责人"
@@ -57,7 +56,6 @@
   type RecordItem = Api.Hr.ComplianceContract | Api.Hr.ComplianceQualification
 
   interface FormModel {
-    tenantId?: string
     contractNo: string
     contractType: string
     contractStatus: string
@@ -100,7 +98,6 @@
   const ownerSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
-    tenantId: undefined,
     contractNo: '',
     contractType: 'fixed_term',
     contractStatus: 'active',
@@ -117,7 +114,7 @@
     comment: ''
   })
   const formModel = reactive<FormModel>(createInitialModel())
-  const numberRule = useDocumentNumberRule('hr.employee_contract', () => formModel.tenantId)
+  const numberRule = useDocumentNumberRule('hr.employee_contract')
 
   const actionMetas: Record<Api.Hr.ComplianceAction, ActionMeta> = {
     activate: {
@@ -288,15 +285,11 @@
     }))
   })
 
-  const toSelection = (
-    reference?: Api.Hr.ComplianceReference | null,
-    tenantId?: string
-  ): EmployeeIntegrationItem[] =>
+  const toSelection = (reference?: Api.Hr.ComplianceReference | null): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId || '',
             employeeNo: reference.employeeNo || '',
             employeeName: reference.employeeName || '未命名员工',
             jobTitle: reference.jobTitle,
@@ -354,7 +347,6 @@
     action.value = targetAction
     record.value = targetRecord
     Object.assign(formModel, createInitialModel(), {
-      tenantId: targetRecord.tenantId,
       comment: ''
     })
     ownerSelection.value = []
@@ -376,7 +368,7 @@
         renewalReminderDays: contract.renewalReminderDays ?? 30,
         renewalOwnerId: contract.renewalOwnerId
       })
-      ownerSelection.value = toSelection(contract.renewalOwner, contract.tenantId)
+      ownerSelection.value = toSelection(contract.renewalOwner)
     }
   }
 

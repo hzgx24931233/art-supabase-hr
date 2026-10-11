@@ -139,7 +139,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     deleteWorkforcePlanningRecord,
     fetchWorkforcePlanningOptions,
@@ -195,7 +194,7 @@
   ]
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { confirmAction, promptReason } = useArtFeedback()
   const activeEntity = ref<Entity>('cycle')
   const activeTab = computed(() => tabs.find((tab) => tab.entity === activeEntity.value) ?? tabs[0])
@@ -204,10 +203,9 @@
   )
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const planFilterOptions = shallowRef<Api.Hr.WorkforcePlanningReference[]>([])
   const tableState = reactive<{ searchQuery: Api.Hr.WorkforcePlanningSearchParams }>({
-    searchQuery: { tenantId: '', status: '', keyword: '', planId: '' }
+    searchQuery: { status: '', keyword: '', planId: '' }
   })
   const overview = reactive<Api.Hr.WorkforcePlanningOverview>({
     activePlanCount: 0,
@@ -275,20 +273,7 @@
 
   const effectiveStatusOptions = useDictionaryOptions('hrHeadcountFulfillmentStatus')
   const searchItems = computed<SearchFormItem[]>(() => {
-    const items: SearchFormItem[] = [
-      {
-        label: '所属租户',
-        key: 'tenantId',
-        type: 'select',
-        hidden: !isPlatformSuper.value,
-        props: {
-          options: tenantOptions.value,
-          clearable: true,
-          filterable: true,
-          onChange: handleTenantSearchChange
-        }
-      }
-    ]
+    const items: SearchFormItem[] = []
     if (activeEntity.value === 'line')
       items.push({
         label: '规划周期',
@@ -708,16 +693,12 @@
     tableOverview.total = Number(response.total ?? 0)
   }
   const loadOverview = async (): Promise<void> => {
-    const result = await fetchWorkforcePlanningOverview(tableState.searchQuery.tenantId)
+    const result = await fetchWorkforcePlanningOverview()
     if (result.data) Object.assign(overview, result.data)
   }
   const loadPlanFilters = async (): Promise<void> => {
-    const result = await fetchWorkforcePlanningOptions('plan', tableState.searchQuery.tenantId)
+    const result = await fetchWorkforcePlanningOptions('plan')
     planFilterOptions.value = result.data ?? []
-  }
-  const handleTenantSearchChange = (): void => {
-    tableState.searchQuery.planId = ''
-    void Promise.all([loadOverview(), loadPlanFilters()])
   }
   const selectEntity = (value: string): void => {
     activeEntity.value = value as Entity
@@ -785,13 +766,6 @@
   }
 
   onMounted(async () => {
-    if (isPlatformSuper.value) {
-      const result = await fetchGetEnableTenantList()
-      tenantOptions.value = (result.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await Promise.all([loadOverview(), loadPlanFilters()])
   })
 </script>

@@ -52,7 +52,6 @@ export async function fetchEmployeeList(params: EmployeeSearchParams) {
       supabase.rpc('hr_list_employees_secure', {
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from),
-        p_tenant_id: params.tenantId || null,
         p_organization_ids: params.organizationIds?.length ? params.organizationIds : null,
         p_organization_unassigned: Boolean(params.organizationUnassigned),
         p_employment_status: params.employmentStatus || null,
@@ -74,15 +73,14 @@ export async function fetchEmployeeList(params: EmployeeSearchParams) {
 }
 
 export async function fetchEmployeeSelectorList(
-  params: Pick<EmployeeSearchParams, 'tenantId' | 'keyword' | 'from' | 'to'>
+  params: Pick<EmployeeSearchParams, 'keyword' | 'from' | 'to'>
 ) {
-  const { tenantId, keyword, from = 0, to = 9 } = params
+  const { keyword, from = 0, to = 9 } = params
   const result = await responseHandle<EmployeeSelectorListPayload>(
     () =>
       supabase.rpc('hr_list_employee_selector_secure', {
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from),
-        p_tenant_id: tenantId || null,
         p_keyword: normalizeNullableText(keyword)
       }),
     { showErrorMessage: true }
@@ -107,30 +105,23 @@ export async function deleteEmployee(id: string) {
   )
 }
 
-export async function fetchEmployeeOrganizationTree(params: { tenantId?: string } = {}) {
+export async function fetchEmployeeOrganizationTree() {
   const response = await responseHandle<OrganizationScopeFilterItem[]>(
-    () =>
-      supabase.rpc('hr_list_employee_organization_scope_secure', {
-        p_tenant_id: params.tenantId || null
-      }),
+    () => supabase.rpc('hr_list_employee_organization_scope_secure'),
     { showErrorMessage: true }
   )
 
   return {
     ...response,
     data: organizationTreeUtils.listToTree(response.data ?? [], (a, b) => {
-      const tenantDiff = (a.tenant?.tenantName ?? '').localeCompare(
-        b.tenant?.tenantName ?? '',
-        'zh-CN'
-      )
       const sortDiff = (a.sort ?? 0) - (b.sort ?? 0)
-      return tenantDiff || sortDiff || a.organizationName.localeCompare(b.organizationName, 'zh-CN')
+      return sortDiff || a.organizationName.localeCompare(b.organizationName, 'zh-CN')
     })
   }
 }
 
-export async function fetchEmployeeOrganizationOptions(params: { tenantId?: string } = {}) {
-  const result = await fetchEmployeeOrganizationTree(params)
+export async function fetchEmployeeOrganizationOptions() {
+  const result = await fetchEmployeeOrganizationTree()
   return {
     ...result,
     data: organizationTreeUtils.treeToList(result.data ?? [])

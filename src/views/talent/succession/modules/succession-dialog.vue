@@ -34,12 +34,8 @@
   import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { fetchSuccessionOptions, saveSuccessionRecord } from '@hr/api'
@@ -49,7 +45,6 @@
   type RecordItem = Api.Hr.SuccessionRecord
   interface FormModel {
     id?: string
-    tenantId?: string
     planCode: string
     positionId?: string
     planName: string
@@ -94,18 +89,16 @@
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
   const nominationSourceOptions = useDictionaryOptions('hrSuccessionNominationSource')
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('plan')
-  const tenantOptions = ref<FormItemOption[]>([])
   const positionOptions = shallowRef<Api.Hr.SuccessionReference[]>([])
   const employeeOptions = shallowRef<Api.Hr.SuccessionReference[]>([])
   const planOptions = shallowRef<Api.Hr.SuccessionReference[]>([])
   const candidateOptions = shallowRef<Api.Hr.SuccessionReference[]>([])
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     planCode: '',
     positionId: undefined,
     planName: '',
@@ -150,24 +143,8 @@
   }>({
     model: formModel,
     items: computed(() => {
-      const common: FormItem[] = isPlatformSuper.value
-        ? [
-            {
-              label: '所属租户',
-              key: 'tenantId',
-              type: 'select',
-              options: tenantOptions.value,
-              props: {
-                filterable: true,
-                placeholder: '请选择所属租户',
-                onChange: handleTenantChange
-              }
-            }
-          ]
-        : []
       if (entity.value === 'plan')
         return [
-          ...common,
           input('planCode', '计划编码', '如 SUCCESSION_OPS_01'),
           input('planName', '计划名称', '如 运输调度负责人继任计划'),
           select('positionId', '关键岗位', positionOptions.value, '请选择关键岗位'),
@@ -189,7 +166,6 @@
         ]
       if (entity.value === 'candidate')
         return [
-          ...common,
           select('planId', '继任计划', planOptions.value, '请选择目标计划'),
           select('employeeId', '候选人', employeeOptions.value, '请选择候选员工'),
           dict('readiness', '继任准备度', 'hrSuccessionReadiness'),
@@ -205,7 +181,6 @@
           textarea('reviewComment', '评审意见', '记录人才评审委员会意见')
         ]
       return [
-        ...common,
         select('candidateId', '继任候选人', candidateOptions.value, '请选择候选人'),
         dict('actionType', '行动类型', 'hrSuccessionActionType'),
         input('actionTitle', '行动名称', '如 主持季度运营复盘'),
@@ -223,11 +198,7 @@
       ]
     }),
     rules: computed(() => {
-      const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value
-          ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-          : []
-      }
+      const rules: FormRules<FormModel> = {}
       if (entity.value === 'plan')
         Object.assign(rules, {
           planCode: required('请输入计划编码', 'blur'),
@@ -354,19 +325,11 @@
   }
 
   const loadReferences = async () => {
-    const tenantId = form.model.tenantId
-    if (isPlatformSuper.value && !tenantId) {
-      positionOptions.value = []
-      employeeOptions.value = []
-      planOptions.value = []
-      candidateOptions.value = []
-      return
-    }
     const [positions, employees, plans, candidates] = await Promise.all([
-      fetchSuccessionOptions('position', tenantId),
-      fetchSuccessionOptions('employee', tenantId),
-      fetchSuccessionOptions('plan', tenantId),
-      fetchSuccessionOptions('candidate', tenantId)
+      fetchSuccessionOptions('position'),
+      fetchSuccessionOptions('employee'),
+      fetchSuccessionOptions('plan'),
+      fetchSuccessionOptions('candidate')
     ])
     positionOptions.value = positions.data ?? []
     employeeOptions.value = employees.data ?? []
@@ -381,15 +344,6 @@
       )
     )
   }
-  const handleTenantChange = async () => {
-    form.model.positionId = undefined
-    form.model.ownerEmployeeId = null
-    form.model.planId = undefined
-    form.model.employeeId = undefined
-    form.model.candidateId = undefined
-    await loadReferences()
-    await reloadReferences()
-  }
   const validateBusiness = () => {
     if (entity.value === 'action' && form.model.dueDate < form.model.startDate)
       throw new Error('截止日期不能早于开始日期')
@@ -401,7 +355,7 @@
       throw new Error('完成的发展行动必须填写可验证成果')
   }
   const toRecord = (): RecordItem => {
-    const common = { id: form.model.id, tenantId: form.model.tenantId }
+    const common = { id: form.model.id }
     if (entity.value === 'plan')
       return {
         ...common,
@@ -479,19 +433,12 @@
     const label = { plan: '继任计划', candidate: '继任候选人', action: '发展行动' }[nextEntity]
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${label}`,
-      subtitle: '继任信息按租户隔离，并通过独立 HR 管理权限访问',
+      subtitle: '继任信息通过独立 HR 管理权限访问',
       confirmText: row ? '保存更改' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
           await reloadReferences()
         } finally {

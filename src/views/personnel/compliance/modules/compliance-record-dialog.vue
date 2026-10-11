@@ -29,9 +29,8 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="employeeSelection"
-            :tenant-id="form.model.tenantId"
             title="选择员工"
-            subtitle="合同与资质只能关联当前租户内的有效员工"
+            subtitle="合同与资质只能关联有效员工"
             placeholder="请选择员工"
           />
         </template>
@@ -39,7 +38,6 @@
           <ArtEmployeeSelect
             v-model="form.model.renewalOwnerId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="form.model.tenantId"
             title="选择续签负责人"
             subtitle="负责人将承担到期评估与续签处置"
             placeholder="请选择续签负责人"
@@ -49,7 +47,6 @@
           <ArtEmployeeSelect
             v-model="form.model.responsibleEmployeeId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="form.model.tenantId"
             title="选择资质责任人"
             subtitle="责任人负责复审、换证和失效处置"
             placeholder="请选择资质责任人"
@@ -64,14 +61,10 @@
   import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { useUserStore } from '@/store/modules/user'
   import { saveComplianceRecord } from '@hr/api'
@@ -82,7 +75,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     employeeId?: string
     contractNo: string
     contractType: string
@@ -122,18 +114,16 @@
 
   const emit = defineEmits<{ success: [type: DialogType, entity: Entity] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('contract')
   const editing = ref(false)
-  const tenantOptions = ref<FormItemOption[]>([])
   const employeeSelection = ref<EmployeeIntegrationItem[]>([])
   const ownerSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     employeeId: undefined,
     contractNo: '',
     contractType: 'fixed_term',
@@ -159,28 +149,9 @@
     nextReviewDate: null
   })
   const formModel = reactive<FormModel>(createInitialModel())
-  const numberRule = useDocumentNumberRule('hr.employee_contract', () => formModel.tenantId)
-
-  const tenantItems = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: {
-              filterable: true,
-              placeholder: '请选择所属租户',
-              onChange: handleTenantChange
-            }
-          }
-        ]
-      : []
-  )
+  const numberRule = useDocumentNumberRule('hr.employee_contract')
 
   const contractItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '合同主体', key: 'identity', type: 'divider', span: 24 },
     { label: '关联员工', key: 'employeeId', type: 'input' },
     {
@@ -237,7 +208,6 @@
   ])
 
   const qualificationItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '证照主体', key: 'identity', type: 'divider', span: 24 },
     { label: '关联员工', key: 'employeeId', type: 'input' },
     {
@@ -281,9 +251,6 @@
     ),
     rules: computed(() => {
       const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value
-          ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-          : [],
         employeeId: [{ required: true, message: '请选择员工', trigger: 'change' }]
       }
       if (entity.value === 'contract') {
@@ -321,15 +288,11 @@
         }
   )
 
-  const toSelection = (
-    reference?: Api.Hr.ComplianceReference | null,
-    tenantId?: string
-  ): EmployeeIntegrationItem[] =>
+  const toSelection = (reference?: Api.Hr.ComplianceReference | null): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId || '',
             employeeNo: reference.employeeNo || '',
             employeeName: reference.employeeName || '未命名员工',
             jobTitle: reference.jobTitle,
@@ -342,15 +305,6 @@
     Object.assign(formModel, createInitialModel())
     employeeSelection.value = []
     ownerSelection.value = []
-  }
-
-  const handleTenantChange = async (): Promise<void> => {
-    formModel.employeeId = undefined
-    formModel.renewalOwnerId = undefined
-    formModel.responsibleEmployeeId = undefined
-    employeeSelection.value = []
-    ownerSelection.value = []
-    if (entity.value === 'contract') await numberRule.loadRule()
   }
 
   const validateBusiness = (): void => {
@@ -380,7 +334,6 @@
       if (entity.value === 'contract') {
         await saveComplianceRecord('contract', {
           id: formModel.id,
-          tenantId: formModel.tenantId,
           employeeId: formModel.employeeId!,
           contractNo: formModel.contractNo || 'AUTO',
           contractType: formModel.contractType,
@@ -400,7 +353,6 @@
       } else {
         await saveComplianceRecord('qualification', {
           id: formModel.id,
-          tenantId: formModel.tenantId,
           employeeId: formModel.employeeId!,
           qualificationType: formModel.qualificationType,
           qualificationName: formModel.qualificationName,
@@ -432,13 +384,13 @@
         ...record,
         monthlySalary: typeof record.monthlySalary === 'number' ? record.monthlySalary : undefined
       })
-      employeeSelection.value = toSelection(record.employee, record.tenantId)
-      ownerSelection.value = toSelection(record.renewalOwner, record.tenantId)
+      employeeSelection.value = toSelection(record.employee)
+      ownerSelection.value = toSelection(record.renewalOwner)
     } else {
       const record = editData as Api.Hr.ComplianceQualification
       Object.assign(formModel, record)
-      employeeSelection.value = toSelection(record.employee, record.tenantId)
-      ownerSelection.value = toSelection(record.responsibleEmployee, record.tenantId)
+      employeeSelection.value = toSelection(record.employee)
+      ownerSelection.value = toSelection(record.responsibleEmployee)
     }
   }
 
@@ -474,19 +426,7 @@
           }
           await nextTick()
           formRef.value?.clearValidate()
-          await Promise.all([
-            ...(isPlatformSuper.value && !tenantOptions.value.length
-              ? [
-                  fetchGetEnableTenantList().then((response) => {
-                    tenantOptions.value = (response.data ?? []).map((tenant) => ({
-                      label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-                      value: tenant.id!
-                    }))
-                  })
-                ]
-              : []),
-            ...(payload.entity === 'contract' ? [numberRule.loadRule()] : [])
-          ])
+          await Promise.all([...(payload.entity === 'contract' ? [numberRule.loadRule()] : [])])
           if (
             payload.entity === 'contract' &&
             !editing.value &&

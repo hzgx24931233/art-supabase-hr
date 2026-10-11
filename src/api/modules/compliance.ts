@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchComplianceOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchComplianceOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.ComplianceOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_compliance_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_compliance_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -32,8 +28,7 @@ export async function fetchComplianceRecords<TRecord extends Api.Hr.ComplianceRe
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_risk_status: params.riskStatus || null,
-          p_tenant_id: params.tenantId || null
+          p_risk_status: params.riskStatus || null
         }),
         options
       ),

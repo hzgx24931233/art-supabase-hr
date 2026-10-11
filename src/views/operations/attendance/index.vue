@@ -100,7 +100,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     deleteTimeAttendanceRecord,
     fetchTimeAttendanceOverview,
@@ -185,10 +184,8 @@
   const navigationItems: HrEntityNavigationItem[] = tabs
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const tableState = reactive<{ searchQuery: Api.Hr.TimeAttendanceSearchParams }>({
     searchQuery: {
-      tenantId: '',
       status: '',
       keyword: '',
       periodMonth: dayjs().startOf('month').format('YYYY-MM-DD')
@@ -271,19 +268,6 @@
 
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: {
-          clearable: true,
-          filterable: true,
-          placeholder: '全部租户',
-          onChange: () => void refreshOverview()
-        }
-      })
     if (activeEntity.value !== 'shift')
       items.push({
         label: '月份',
@@ -806,7 +790,7 @@
     return fetchTimeAttendanceRecords(activeEntity.value, { ...params, from, to })
   }
   const refreshOverview = async () => {
-    const response = await fetchTimeAttendanceOverview(tableState.searchQuery.tenantId)
+    const response = await fetchTimeAttendanceOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const openDialog = (entityValue: Entity, row?: RecordItem, preset?: Record<string, unknown>) =>
@@ -814,7 +798,7 @@
       entity: entityValue,
       type: row ? 'edit' : 'add',
       editData: row,
-      preset: { tenantId: tableState.searchQuery.tenantId || undefined, ...preset }
+      preset: { ...preset }
     })
   const handleSaveSuccess = (type: DialogType) => {
     void (type === 'add'
@@ -939,12 +923,6 @@
   }
 
   onMounted(async () => {
-    if (isPlatformSuper.value) {
-      const tenants = await fetchGetEnableTenantList()
-      tenantOptions.value = (tenants.data ?? [])
-        .filter((tenant): tenant is typeof tenant & { id: string } => Boolean(tenant.id))
-        .map((tenant) => ({ label: tenant.tenantName, value: tenant.id }))
-    }
     await refreshOverview()
   })
 </script>

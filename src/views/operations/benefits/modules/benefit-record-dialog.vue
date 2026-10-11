@@ -29,9 +29,8 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="employeeSelection"
-            :tenant-id="form.model.tenantId"
             title="选择福利涉及员工"
-            subtitle="员工身份用于校验人生事件、参保资格与租户边界"
+            subtitle="员工身份用于校验人生事件与参保资格"
             placeholder="请选择员工"
           />
         </template>
@@ -51,7 +50,6 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useUserStore } from '@/store/modules/user'
   import {
@@ -73,7 +71,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     planCode: string
     planName: string
     planType: string
@@ -108,20 +105,18 @@
 
   const emit = defineEmits<{ success: [entity: Entity, type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { hasAuth } = useAuth()
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('plan')
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const benefitOptions = ref<Api.Hr.BenefitOption[]>([])
   const lifeEvents = ref<Api.Hr.BenefitLifeEvent[]>([])
   const employeeSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     planCode: '',
     planName: '',
     planType: 'commercial_insurance',
@@ -181,22 +176,7 @@
   const dictLabel = (code: string, value?: string | null): string =>
     getDictMap.value[code]?.find((item) => item.value === value)?.label ?? value ?? '--'
 
-  const commonTenantItems = (): FormItem[] =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            span: 24,
-            options: tenantOptions.value,
-            props: { filterable: true, placeholder: '请选择所属租户' }
-          }
-        ]
-      : []
-
   const planItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '计划识别', key: 'identity', type: 'divider', span: 24 },
     {
       label: '计划编码',
@@ -243,7 +223,6 @@
   ])
 
   const enrollmentItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '员工与资格', key: 'employeeSection', type: 'divider', span: 24 },
     { label: '员工', key: 'employeeId', type: 'input' },
     {
@@ -308,7 +287,6 @@
   ])
 
   const eventItems = computed<FormItem[]>(() => [
-    ...commonTenantItems(),
     { label: '事件与员工', key: 'eventSection', type: 'divider', span: 24 },
     { label: '员工', key: 'employeeId', type: 'input' },
     {
@@ -359,9 +337,6 @@
           : eventItems.value
     ),
     rules: computed(() => ({
-      tenantId: isPlatformSuper.value
-        ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-        : [],
       planCode:
         entity.value === 'plan'
           ? [{ required: true, message: '请输入计划编码', trigger: 'blur' }]
@@ -437,15 +412,11 @@
     }
   })
 
-  const toSelection = (
-    reference?: Api.Hr.BenefitReference | null,
-    tenantId?: string
-  ): EmployeeIntegrationItem[] =>
+  const toSelection = (reference?: Api.Hr.BenefitReference | null): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId || '',
             employeeNo: reference.employeeNo || '',
             employeeName: reference.employeeName || '未命名员工',
             jobTitle: reference.jobTitle,
@@ -456,8 +427,7 @@
 
   const setFromRecord = (record: RecordItem): void => {
     Object.assign(formModel, createInitialModel(), record)
-    if ('employeeId' in record)
-      employeeSelection.value = toSelection(record.employee, record.tenantId)
+    if ('employeeId' in record) employeeSelection.value = toSelection(record.employee)
     if ('evidenceUrls' in record) formModel.evidenceText = (record.evidenceUrls ?? []).join('\n')
   }
 
@@ -465,7 +435,6 @@
     if (entity.value === 'plan') {
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         planCode: formModel.planCode.trim(),
         planName: formModel.planName.trim(),
         planType: formModel.planType,
@@ -482,7 +451,6 @@
     if (entity.value === 'enrollment') {
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         employeeId: formModel.employeeId!,
         planId: formModel.planId!,
         optionId: formModel.optionId!,
@@ -500,7 +468,6 @@
     }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       employeeId: formModel.employeeId!,
       eventType: formModel.eventType,
       eventDate: formModel.eventDate,
@@ -556,9 +523,8 @@
   const loadOptions = async (): Promise<void> => {
     if (entity.value !== 'enrollment') return
     const [optionResponse, eventResponse] = await Promise.all([
-      fetchBenefitPlanOptions(undefined, formModel.tenantId, true),
+      fetchBenefitPlanOptions(undefined, true),
       fetchBenefitRecords<Api.Hr.BenefitLifeEvent>('event', {
-        tenantId: formModel.tenantId,
         status: 'open',
         from: 0,
         to: 199
@@ -580,19 +546,12 @@
     formRef.value?.clearValidate()
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${contextMeta.value.title}`,
-      subtitle: '福利计划、员工选择和缴费结果按租户隔离并全程审计',
+      subtitle: '福利计划、员工选择和缴费结果全程可审计',
       confirmText: payload.type === 'add' ? '创建记录' : '保存更改',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           if (payload.type === 'edit' && payload.editData?.id) {
             const response = await fetchBenefitDetail(payload.entity, payload.editData.id)
             if (response.data) setFromRecord(response.data)
@@ -624,14 +583,6 @@
         formModel.employeeContribution = option.employeeContribution
       if (option.employerContribution != null)
         formModel.employerContribution = option.employerContribution
-    }
-  )
-  watch(
-    () => formModel.tenantId,
-    () => {
-      if (dialogType.value !== 'add') return
-      formModel.employeeId = undefined
-      employeeSelection.value = []
     }
   )
 

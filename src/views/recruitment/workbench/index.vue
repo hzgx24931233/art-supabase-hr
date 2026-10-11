@@ -104,7 +104,6 @@
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
   import type { ColumnOption } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     completeRecruitmentTask,
     deleteRecruitmentRecord,
@@ -199,7 +198,7 @@
   ]
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { hasAuth } = useAuth()
   const { confirmAction } = useArtFeedback()
   const activeEntity = ref<Entity>('requisition')
@@ -207,9 +206,8 @@
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
   const actionDialogRef = ref<ActionDialogExpose>()
-  const tenantOptions = shallowRef<Array<{ label: string; value: string }>>([])
   const tableState = reactive<{ searchQuery: Api.Hr.RecruitmentSearchParams }>({
-    searchQuery: { tenantId: '', status: '', keyword: '' }
+    searchQuery: { status: '', keyword: '' }
   })
   const overview = reactive<Api.Hr.RecruitmentOverview>({
     activeRequisitionCount: 0,
@@ -264,14 +262,6 @@
 
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: { clearable: true, filterable: true, placeholder: '全部租户' }
-      })
     items.push(
       {
         label: '状态',
@@ -1021,7 +1011,7 @@
     return response
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchRecruitmentOverview(tableState.searchQuery.tenantId)
+    const response = await fetchRecruitmentOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const handleTableSuccess = (): void => {
@@ -1125,13 +1115,6 @@
         'hrCandidateConsentStatus'
       ].map((code) => userStore.ensureDictLoaded(code))
     )
-    if (isPlatformSuper.value) {
-      const response = await fetchGetEnableTenantList()
-      tenantOptions.value = (response.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await refreshOverview()
   })
 </script>

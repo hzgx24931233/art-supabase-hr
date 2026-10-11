@@ -24,7 +24,6 @@
               :loading="organizationFilterLoading"
               :selected-key="selectedOrganizationKey"
               :include-descendants="includeDescendantOrganizations"
-              :global-scope="isAllTenants"
               @select="handleOrganizationSelect"
               @refresh="loadOrganizationTree"
               @update:include-descendants="handleIncludeDescendantsChange"
@@ -75,7 +74,6 @@
         :loading="organizationFilterLoading"
         :selected-key="selectedOrganizationKey"
         :include-descendants="includeDescendantOrganizations"
-        :global-scope="isAllTenants"
         @select="handleOrganizationSelect"
         @refresh="loadOrganizationTree"
         @update:include-descendants="handleIncludeDescendantsChange"
@@ -112,11 +110,9 @@
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import TreeUtils from '@/utils/tree'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { deleteEmployee, fetchEmployeeList, fetchEmployeeOrganizationTree } from '@hr/api'
   import HrEmployeeIdentityCell from '@hr/views/shared/hr-employee-identity-cell.vue'
   import HrTableActions from '@hr/views/shared/hr-table-actions.vue'
-  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
 
   defineOptions({ name: 'HrEmployeeRoster' })
   type Employee = Api.Hr.Employee
@@ -136,7 +132,6 @@
   const route = useRoute()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
-  const { effectiveTenantId, isAllTenants } = storeToRefs(useTenantScopeStore())
   const { confirmAction } = useArtFeedback()
   const organizationTreeUtils = new TreeUtils({
     idKey: 'id',
@@ -148,7 +143,6 @@
   const isDesktopOrganizationLayout = useMediaQuery('(min-width: 1201px)')
   const organizationTree = ref<Organization[]>([])
   const organizationFilterLoading = ref(false)
-  const selectedTenantId = computed(() => effectiveTenantId.value ?? '')
   const selectedOrganizationKey = ref(ALL_ORGANIZATIONS_KEY)
   const includeDescendantOrganizations = ref(true)
   const listFieldAccess = ref<EmployeeFieldAccessMap>({})
@@ -168,7 +162,7 @@
   )
   const linkedAccountCount = computed(() => overview.rows.filter((row) => row.account?.id).length)
   const workspaceTags: BusinessWorkspaceTag[] = [
-    { label: '人事档案按租户隔离', type: 'success', effect: 'light' },
+    { label: '人事档案受权限保护', type: 'success', effect: 'light' },
     { label: '支持账号联动', type: 'primary', effect: 'plain' }
   ]
   const workspaceMetrics = computed<BusinessWorkspaceMetric[]>(() => [
@@ -290,16 +284,6 @@
       dict: { code: 'hrEmploymentStatus', display: 'auto' }
     },
     {
-      prop: 'tenant',
-      label: '所属租户',
-      minWidth: 180,
-      formatter: (row: Employee) =>
-        h(BusinessTableIdentityCell, {
-          primary: row.tenant?.tenantName,
-          secondary: row.tenant?.tenantCode
-        })
-    },
-    {
       prop: 'organization',
       label: '所属组织',
       minWidth: 170,
@@ -392,7 +376,6 @@
     const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
     const result = await fetchEmployeeList({
       ...params,
-      tenantId: selectedTenantId.value || undefined,
       organizationIds: selectedOrganizationIds.value,
       organizationUnassigned: selectedOrganizationKey.value === UNASSIGNED_ORGANIZATION_KEY,
       from,
@@ -415,7 +398,7 @@
   const loadOrganizationTree = async (): Promise<void> => {
     organizationFilterLoading.value = true
     try {
-      const response = await fetchEmployeeOrganizationTree({ tenantId: selectedTenantId.value })
+      const response = await fetchEmployeeOrganizationTree()
       organizationTree.value = response.data ?? []
     } finally {
       organizationFilterLoading.value = false

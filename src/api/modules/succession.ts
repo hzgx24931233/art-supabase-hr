@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchSuccessionOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchSuccessionOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.SuccessionOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_succession_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_succession_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -31,8 +27,7 @@ export async function fetchSuccessionRecords<TRecord extends Api.Hr.SuccessionRe
           p_from: from,
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
-          p_status: params.status || null,
-          p_tenant_id: params.tenantId || null
+          p_status: params.status || null
         }),
         options
       ),
@@ -43,15 +38,13 @@ export async function fetchSuccessionRecords<TRecord extends Api.Hr.SuccessionRe
 
 export async function fetchSuccessionOptions(
   kind: 'position' | 'employee' | 'plan' | 'candidate',
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.SuccessionReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_succession_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),
@@ -63,7 +56,6 @@ const normalizePayload = (record: Api.Hr.SuccessionRecord) =>
   keysToSnakeDeep(
     omit(record, [
       'id',
-      'tenant',
       'position',
       'employee',
       'plan',

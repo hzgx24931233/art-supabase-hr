@@ -496,7 +496,6 @@
       'add-action',
       {
         id: insightDetail.value.id,
-        tenantId: insightDetail.value.tenantId,
         surveyCode: insightDetail.value.surveyCode,
         surveyName: insightDetail.value.surveyName,
         surveyType: insightDetail.value.surveyType

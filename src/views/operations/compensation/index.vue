@@ -103,7 +103,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     actCompensationRecord,
     deleteCompensationRecord,
@@ -166,15 +165,14 @@
   )
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('employee')
   const activeTab = computed(() => tabs.find((tab) => tab.entity === activeEntity.value) ?? tabs[0])
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<CompensationDialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const tableState = reactive<{ searchQuery: Api.Hr.CompensationSearchParams }>({
-    searchQuery: { tenantId: '', status: '', keyword: '' }
+    searchQuery: { status: '', keyword: '' }
   })
   const overview = reactive<Api.Hr.CompensationOverview>({
     employeeCount: 0,
@@ -227,13 +225,6 @@
   const enabledStatusOptions = useDictionaryOptions('commonEnabledStatus')
   const searchItems = computed<SearchFormItem[]>(() => [
     {
-      label: '所属租户',
-      key: 'tenantId',
-      type: 'select',
-      hidden: !isPlatformSuper.value,
-      props: { options: tenantOptions.value, clearable: true, filterable: true }
-    },
-    {
       label: '状态',
       key: 'status',
       type: 'select',
@@ -269,18 +260,6 @@
       minimumFractionDigits: 2
     }).format(amount)
   }
-
-  const tenantColumn = (): ColumnOption<RecordItem>[] =>
-    isPlatformSuper.value
-      ? [
-          {
-            prop: 'tenant.tenantName',
-            label: '所属租户',
-            minWidth: 160,
-            showOverflowTooltip: true
-          }
-        ]
-      : []
 
   const lifecycleColumn = (): ColumnOption<RecordItem> => ({
     prop: 'lifecycleStatus',
@@ -390,7 +369,6 @@
   const columnsFactory = (): ColumnOption<RecordItem>[] => {
     if (activeEntity.value === 'component')
       return [
-        ...tenantColumn(),
         { prop: 'componentCode', label: '项目编码', minWidth: 150, showOverflowTooltip: true },
         { prop: 'componentName', label: '薪酬项目', minWidth: 180, showOverflowTooltip: true },
         {
@@ -438,7 +416,6 @@
       ]
     if (activeEntity.value === 'plan')
       return [
-        ...tenantColumn(),
         { prop: 'planCode', label: '方案编码', minWidth: 150, showOverflowTooltip: true },
         { prop: 'planName', label: '薪酬方案', minWidth: 200, showOverflowTooltip: true },
         {
@@ -485,7 +462,6 @@
       ]
     if (activeEntity.value === 'band')
       return [
-        ...tenantColumn(),
         { prop: 'grade.gradeCode', label: '职级编码', minWidth: 130, showOverflowTooltip: true },
         { prop: 'grade.gradeName', label: '职级', minWidth: 150, showOverflowTooltip: true },
         {
@@ -532,7 +508,6 @@
         actionColumn()
       ]
     return [
-      ...tenantColumn(),
       { prop: 'employee.employeeNo', label: '员工编号', minWidth: 130, showOverflowTooltip: true },
       {
         prop: 'employee.employeeName',
@@ -614,7 +589,7 @@
     )
   }
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchCompensationOverview(tableState.searchQuery.tenantId)
+    const response = await fetchCompensationOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const openDialog = (row?: RecordItem): void =>
@@ -708,13 +683,6 @@
       userStore.ensureDictLoaded('hrCompensationRangeStatus'),
       userStore.ensureDictLoaded('hrPayFrequency')
     ])
-    if (isPlatformSuper.value) {
-      const response = await fetchGetEnableTenantList()
-      tenantOptions.value = (response.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await refreshOverview()
   })
 </script>

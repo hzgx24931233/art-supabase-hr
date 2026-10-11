@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchTimeAttendanceOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchTimeAttendanceOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.TimeAttendanceOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_attendance_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_attendance_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -32,8 +28,7 @@ export async function fetchTimeAttendanceRecords<TRecord extends Api.Hr.TimeAtte
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_period_month: params.periodMonth || null,
-          p_tenant_id: params.tenantId || null
+          p_period_month: params.periodMonth || null
         }),
         options
       ),
@@ -44,15 +39,13 @@ export async function fetchTimeAttendanceRecords<TRecord extends Api.Hr.TimeAtte
 
 export async function fetchTimeAttendanceOptions(
   kind: Api.Hr.TimeAttendanceOptionKind,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.TimeAttendanceReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_attendance_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),

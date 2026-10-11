@@ -18,13 +18,8 @@
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { fetchJobArchitectureOptions, saveJobArchitectureRecord } from '@hr/api'
-  import { useUserStore } from '@/store/modules/user'
   import type { DialogType } from '@/types'
 
   type Entity = Api.Hr.JobArchitectureEntity
@@ -32,7 +27,6 @@
 
   interface ArchitectureFormModel {
     id?: string
-    tenantId?: string
     familyCode: string
     familyName: string
     gradeCode: string
@@ -62,15 +56,11 @@
   }
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
-  const userStore = useUserStore()
-  const { getUserInfo, isPlatformSuper } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('profile')
-  const tenantOptions = ref<FormItemOption[]>([])
 
   const createInitialModel = (): ArchitectureFormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     familyCode: '',
     familyName: '',
     gradeCode: '',
@@ -100,20 +90,6 @@
     model: formModel,
     items: computed(() => {
       const common: FormItem[] = [
-        {
-          label: '所属租户',
-          key: 'tenantId',
-          type: 'select',
-          span: 24,
-          hidden: !isPlatformSuper.value,
-          options: tenantOptions.value,
-          props: {
-            filterable: true,
-            disabled: Boolean(formModel.id),
-            placeholder: '请选择所属租户',
-            onChange: () => void reloadDependentOptions()
-          }
-        },
         {
           label: '排序',
           key: 'sort',
@@ -195,8 +171,7 @@
           key: 'familyId',
           type: 'select',
           immediate: false,
-          api: async () =>
-            (await fetchJobArchitectureOptions('family', formModel.tenantId)).data ?? [],
+          api: async () => (await fetchJobArchitectureOptions('family')).data ?? [],
           valueField: 'id',
           labelFn: (option) => `${option.name ?? ''} · ${option.code ?? ''}`,
           props: { filterable: true, placeholder: '请选择所属职族' }
@@ -206,8 +181,7 @@
           key: 'defaultGradeId',
           type: 'select',
           immediate: false,
-          api: async () =>
-            (await fetchJobArchitectureOptions('grade', formModel.tenantId)).data ?? [],
+          api: async () => (await fetchJobArchitectureOptions('grade')).data ?? [],
           valueField: 'id',
           labelFn: (option) => `${option.name ?? ''} · ${option.code ?? ''}`,
           props: { filterable: true, clearable: true, placeholder: '可选，用于岗位默认值' }
@@ -231,9 +205,6 @@
     }),
     rules: computed(() => {
       const rules: FormRules<ArchitectureFormModel> = {
-        tenantId: isPlatformSuper.value
-          ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-          : [],
         sort: [{ required: true, message: '请输入排序值', trigger: 'change' }],
         description: [{ max: 300, message: '说明不能超过 300 个字符', trigger: 'blur' }]
       }
@@ -270,7 +241,6 @@
   const toRecord = (): RecordItem => {
     const common = {
       id: form.model.id,
-      tenantId: form.model.tenantId,
       enabled: form.model.enabled,
       sort: form.model.sort,
       description: form.model.description
@@ -321,17 +291,10 @@
           : '维护企业统一的职务分类和晋升层级标准',
       confirmText: row ? '保存更改' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
-      loading: isPlatformSuper.value && !tenantOptions.value.length,
+      loading: false,
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await reloadDependentOptions()
         } finally {
           api.setLoading(false)

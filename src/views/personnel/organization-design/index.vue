@@ -212,7 +212,7 @@
   const tableTotal = ref(0)
   const focusedScenario = ref<Api.Hr.OrganizationDesignScenario | null>(null)
   const tableState = reactive<{ searchQuery: Api.Hr.OrganizationDesignSearchParams }>({
-    searchQuery: { keyword: '', status: '', tenantId: '' }
+    searchQuery: { keyword: '', status: '' }
   })
   const overview = reactive<Api.Hr.OrganizationDesignOverview>({
     draftCount: 0,
@@ -608,7 +608,7 @@
     tableTotal.value = response.total ?? 0
   }
   const refreshOverview = async () => {
-    const response = await fetchOrganizationDesignOverview(tableState.searchQuery.tenantId)
+    const response = await fetchOrganizationDesignOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const refreshWorkspace = async () => {

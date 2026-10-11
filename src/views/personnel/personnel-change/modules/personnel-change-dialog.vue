@@ -122,7 +122,7 @@
   const dialogRef = ref<ArtDialogExpose<DialogOpenData>>()
   const formRef = ref<FormExpose>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const isEditing = ref(false)
   const currentWorkspace = shallowRef<HrWorkspaceDefinition>()
   const currentTab = shallowRef<HrWorkspaceTab>()
@@ -257,8 +257,7 @@
     )
   }
 
-  const loadOrganizationOptions = async () =>
-    (await fetchEmployeeOrganizationOptions({ tenantId: getUserInfo.value.tenantId })).data ?? []
+  const loadOrganizationOptions = async () => (await fetchEmployeeOrganizationOptions()).data ?? []
 
   const loadPositionOptions = async (): Promise<Api.Hr.PositionOption[]> => {
     const result = await fetchAssignmentPositionOptions(form.model.toOrganizationId ?? undefined)
@@ -267,7 +266,7 @@
   }
 
   const loadArchitectureOptions = async (kind: Api.Hr.JobArchitectureEntity) =>
-    (await fetchJobArchitectureOptions(kind, getUserInfo.value.tenantId)).data ?? []
+    (await fetchJobArchitectureOptions(kind)).data ?? []
 
   const applySelectedEmployee = (employeeId?: string): void => {
     const employee = employeeOptions.value.find((item) => item.id === employeeId)

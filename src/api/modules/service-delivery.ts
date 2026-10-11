@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchServiceDeliveryOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchServiceDeliveryOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.ServiceDeliveryOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_service_delivery_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_service_delivery_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -33,8 +29,7 @@ export async function fetchServiceDeliveryRecords<TRecord extends Api.Hr.Service
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
           p_category: params.category || null,
-          p_scope: params.scope || 'mine',
-          p_tenant_id: params.tenantId || null
+          p_scope: params.scope || 'mine'
         }),
         options
       ),

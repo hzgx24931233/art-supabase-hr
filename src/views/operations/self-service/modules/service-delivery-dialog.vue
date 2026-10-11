@@ -22,7 +22,6 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="employeeSelection"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择代建工单的员工"
           />
         </template>
@@ -41,7 +40,6 @@
   } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
@@ -53,7 +51,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     requestNo: string
     employeeId?: string
     serviceId?: string
@@ -91,18 +88,16 @@
   const emit = defineEmits<{ success: [type: DialogType, entity: Entity] }>()
   const userStore = useUserStore()
   const serviceModeOptions = useDictionaryOptions('hrServiceDeliveryMode')
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('request')
   const managerView = ref(false)
   const editing = ref(false)
-  const tenantOptions = ref<FormItemOption[]>([])
   const serviceOptions = ref<FormItemOption[]>([])
   const employeeSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     requestNo: '',
     employeeId: undefined,
     serviceId: undefined,
@@ -124,28 +119,9 @@
     sort: 0
   })
   const formModel = reactive<FormModel>(createInitialModel())
-  const numberRule = useDocumentNumberRule('hr.self_service_request', () => formModel.tenantId)
-
-  const tenantItems = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: {
-              filterable: true,
-              placeholder: '请选择所属租户',
-              onChange: handleTenantChange
-            }
-          }
-        ]
-      : []
-  )
+  const numberRule = useDocumentNumberRule('hr.self_service_request')
 
   const requestItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '工单识别', key: 'requestIdentity', type: 'divider', span: 24 },
     {
       label: '工单编号',
@@ -205,7 +181,6 @@
   ])
 
   const catalogItems = computed<FormItem[]>(() => [
-    ...tenantItems.value,
     { label: '服务定义', key: 'serviceIdentity', type: 'divider', span: 24 },
     { label: '服务编码', key: 'serviceCode', type: 'input', props: { maxlength: 60 } },
     { label: '服务名称', key: 'serviceName', type: 'input', props: { maxlength: 100 } },
@@ -270,11 +245,7 @@
     model: formModel,
     items: computed(() => (entity.value === 'request' ? requestItems.value : catalogItems.value)),
     rules: computed(() => {
-      const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value
-          ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-          : []
-      }
+      const rules: FormRules<FormModel> = {}
       if (entity.value === 'request') {
         Object.assign(rules, {
           requestNo:
@@ -324,14 +295,9 @@
   }
 
   const loadServices = async (): Promise<void> => {
-    if (isPlatformSuper.value && !formModel.tenantId) {
-      serviceOptions.value = []
-      return
-    }
     const response = await fetchServiceDeliveryRecords<Api.Hr.ServiceCatalog>('service', {
       from: 0,
       to: 499,
-      tenantId: formModel.tenantId,
       status: 'enabled'
     })
     serviceOptions.value = response.data
@@ -342,19 +308,11 @@
       }))
   }
 
-  const handleTenantChange = async (): Promise<void> => {
-    formModel.employeeId = undefined
-    formModel.serviceId = undefined
-    employeeSelection.value = []
-    await Promise.all([loadServices(), numberRule.loadRule()])
-  }
-
   const createEmployeeSelection = (record?: Api.Hr.ServiceRequest): EmployeeIntegrationItem[] =>
     record?.requester
       ? [
           {
             id: record.requester.id,
-            tenantId: record.tenantId || formModel.tenantId || '',
             employeeNo: record.requester.code || '',
             employeeName: record.requester.name || '未命名员工',
             jobTitle: record.requester.jobTitle,
@@ -381,7 +339,6 @@
       if (entity.value === 'service') {
         await saveServiceCatalog({
           id: formModel.id,
-          tenantId: formModel.tenantId,
           serviceCode: formModel.serviceCode,
           serviceName: formModel.serviceName,
           category: formModel.category,
@@ -397,7 +354,6 @@
       } else {
         await saveServiceRequest({
           id: formModel.id,
-          tenantId: formModel.tenantId,
           requestNo: formModel.requestNo || 'AUTO',
           employeeId: formModel.employeeId || '',
           serviceId: formModel.serviceId!,
@@ -430,7 +386,6 @@
 
     if (payload.entity === 'request' && payload.preset) {
       Object.assign(formModel, {
-        tenantId: payload.preset.tenantId ?? formModel.tenantId,
         employeeId: payload.preset.employeeId,
         serviceId: payload.preset.serviceId,
         title: payload.preset.title ?? '',
@@ -444,7 +399,6 @@
       const record = payload.editData as Api.Hr.ServiceRequest
       Object.assign(formModel, {
         id: record.id,
-        tenantId: record.tenantId,
         requestNo: record.requestNo,
         employeeId: record.employeeId,
         serviceId: record.serviceId,
@@ -460,7 +414,6 @@
       const record = payload.editData as Api.Hr.ServiceCatalog
       Object.assign(formModel, {
         id: record.id,
-        tenantId: record.tenantId,
         serviceCode: record.serviceCode,
         serviceName: record.serviceName,
         category: record.category,
@@ -493,16 +446,6 @@
         api.setLoading(true)
         try {
           await Promise.all([
-            ...(isPlatformSuper.value && !tenantOptions.value.length
-              ? [
-                  fetchGetEnableTenantList().then((response) => {
-                    tenantOptions.value = (response.data ?? []).map((tenant) => ({
-                      label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-                      value: tenant.id!
-                    }))
-                  })
-                ]
-              : []),
             ...(payload.entity === 'request' ? [loadServices(), numberRule.loadRule()] : [])
           ])
           if (

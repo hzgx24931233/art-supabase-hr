@@ -22,7 +22,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择规划负责人"
           />
         </template>
@@ -36,13 +35,9 @@
   import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchWorkforcePlanningOptions, saveWorkforcePlanningRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -52,7 +47,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     planNo: string
     planName: string
     scenario: Api.Hr.WorkforcePlanScenario
@@ -88,18 +82,16 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('cycle')
-  const tenantOptions = ref<FormItemOption[]>([])
   const planOptions = shallowRef<Api.Hr.WorkforcePlanningReference[]>([])
   const organizationOptions = shallowRef<Api.Hr.WorkforcePlanningReference[]>([])
   const positionOptions = shallowRef<Api.Hr.WorkforcePlanningReference[]>([])
   const ownerSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     planNo: '',
     planName: '',
     scenario: 'baseline',
@@ -217,23 +209,6 @@
     props: { filterable: true, placeholder: `请选择${label}`, onChange }
   })
 
-  const tenantItem = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: {
-              filterable: true,
-              disabled: Boolean(formModel.id),
-              onChange: handleTenantChange
-            }
-          }
-        ]
-      : []
-  )
   const form = reactive<{
     model: FormModel
     items: ComputedRef<FormItem[]>
@@ -243,7 +218,6 @@
     items: computed(() => {
       if (entity.value === 'cycle')
         return [
-          ...tenantItem.value,
           input('planNo', '规划编号', '如 WFP_2027_BASE'),
           input('planName', '规划名称', '如 2027 年度业务增长人力规划'),
           dict('scenario', '规划场景', 'hrWorkforcePlanScenario'),
@@ -259,7 +233,6 @@
         ]
       if (entity.value === 'line')
         return [
-          ...tenantItem.value,
           select('planId', '草稿规划', planOptions.value),
           select('organizationId', '组织', organizationOptions.value, handleOrganizationChange),
           select('positionId', '岗位', filteredPositions.value, handlePositionChange),
@@ -272,7 +245,6 @@
           textarea('assumptions', '测算假设', '记录生产率、流失或成本测算口径')
         ]
       return [
-        ...tenantItem.value,
         select('organizationId', '组织', organizationOptions.value, handleOrganizationChange),
         select('positionId', '岗位', filteredPositions.value, handlePositionChange),
         number('approvedCount', '核定人数'),
@@ -283,9 +255,7 @@
       ]
     }),
     rules: computed(() => {
-      const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value ? required('请选择所属租户', 'change') : []
-      }
+      const rules: FormRules<FormModel> = {}
       if (entity.value === 'cycle')
         Object.assign(rules, {
           planNo: required('请输入规划编号', 'blur'),
@@ -330,17 +300,6 @@
         ] as EmployeeIntegrationItem[])
       : []
 
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(formModel, {
-      ownerEmployeeId: undefined,
-      planId: undefined,
-      organizationId: undefined,
-      positionId: undefined,
-      baselineCount: 0
-    })
-    ownerSelection.value = []
-    await loadReferences()
-  }
   const handleOrganizationChange = (): void => {
     formModel.positionId = undefined
     formModel.baselineCount = 0
@@ -351,16 +310,10 @@
     if (entity.value === 'effective') formModel.approvedCount = position?.headcountLimit ?? 1
   }
   const loadReferences = async (): Promise<void> => {
-    if (isPlatformSuper.value && !formModel.tenantId) {
-      planOptions.value = []
-      organizationOptions.value = []
-      positionOptions.value = []
-      return
-    }
     const [plans, organizations, positions] = await Promise.all([
-      fetchWorkforcePlanningOptions('plan', formModel.tenantId),
-      fetchWorkforcePlanningOptions('organization', formModel.tenantId),
-      fetchWorkforcePlanningOptions('position', formModel.tenantId)
+      fetchWorkforcePlanningOptions('plan'),
+      fetchWorkforcePlanningOptions('organization'),
+      fetchWorkforcePlanningOptions('position')
     ])
     planOptions.value = (plans.data ?? []).filter((option) => option.status === 'draft')
     organizationOptions.value = organizations.data ?? []
@@ -387,7 +340,6 @@
     if (entity.value === 'cycle')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         planNo: formModel.planNo,
         planName: formModel.planName,
         scenario: formModel.scenario,
@@ -405,7 +357,6 @@
     if (entity.value === 'line')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         planId: formModel.planId!,
         organizationId: formModel.organizationId!,
         positionId: formModel.positionId!,
@@ -421,7 +372,6 @@
       }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       organizationId: formModel.organizationId!,
       positionId: formModel.positionId!,
       approvedCount: Number(formModel.approvedCount),
@@ -467,13 +417,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadReferences()
         } finally {
           api.setLoading(false)

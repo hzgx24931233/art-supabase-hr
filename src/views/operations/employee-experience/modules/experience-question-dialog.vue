@@ -53,7 +53,6 @@
 
   const createInitialModel = (): Api.Hr.EmployeeExperienceQuestion => ({
     id: undefined,
-    tenantId: undefined,
     surveyId: '',
     dimension: 'engagement',
     questionText: '',
@@ -157,8 +156,7 @@
   ): Promise<void> => {
     survey.value = sourceSurvey
     Object.assign(formModel, createInitialModel(), editData ?? {}, {
-      surveyId: sourceSurvey.id,
-      tenantId: sourceSurvey.tenantId
+      surveyId: sourceSurvey.id
     })
     await nextTick()
     formRef.value?.clearValidate()

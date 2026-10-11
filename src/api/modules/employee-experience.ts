@@ -6,18 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchEmployeeExperienceOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchEmployeeExperienceOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.EmployeeExperienceOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_employee_experience_overview_secure', {
-          p_tenant_id: tenantId || null
-        }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_employee_experience_overview_secure', {}), options),
     { showErrorMessage: true }
   )
 }
@@ -39,8 +30,7 @@ export async function fetchEmployeeExperienceRecords<
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_survey_type: params.surveyType || null,
-          p_tenant_id: params.tenantId || null
+          p_survey_type: params.surveyType || null
         }),
         options
       ),

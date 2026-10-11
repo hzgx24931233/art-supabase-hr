@@ -29,7 +29,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="form.model.tenantId"
             title="选择改善行动负责人"
             subtitle="负责人承担执行、进度维护与成果验收"
             placeholder="请选择行动负责人"
@@ -50,7 +49,6 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import {
     fetchEmployeeExperienceRecords,
@@ -72,18 +70,16 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const surveys = ref<Api.Hr.EmployeeExperienceSurvey[]>([])
   const organizationOptions = ref<Array<{ label: string; value: string }>>([])
   const ownerSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): Api.Hr.EmployeeExperienceAction => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     surveyId: '',
     organizationId: null,
     dimension: 'engagement',
@@ -97,39 +93,16 @@
   const formModel = reactive<Api.Hr.EmployeeExperienceAction>(createInitialModel())
   const dictOptions = (code: string) => getDictMap.value[code] ?? []
   const surveyOptions = computed(() =>
-    surveys.value
-      .filter((survey) => !formModel.tenantId || survey.tenantId === formModel.tenantId)
-      .map((survey) => ({
-        label: `${survey.surveyName}（${survey.surveyCode}）`,
-        value: survey.id!
-      }))
+    surveys.value.map((survey) => ({
+      label: `${survey.surveyName}（${survey.surveyCode}）`,
+      value: survey.id!
+    }))
   )
   const selectedSurvey = computed(() =>
     surveys.value.find((survey) => survey.id === formModel.surveyId)
   )
   const formItems = computed<FormItem[]>(() => {
     const items: FormItem[] = []
-    if (isPlatformSuper.value) {
-      items.push({
-        label: '所属租户',
-        key: 'tenantId',
-        type: 'select',
-        span: 24,
-        options: tenantOptions.value,
-        props: {
-          filterable: true,
-          disabled: Boolean(formModel.id),
-          placeholder: '请选择行动所属租户',
-          onChange: async () => {
-            formModel.surveyId = ''
-            formModel.organizationId = null
-            formModel.ownerEmployeeId = ''
-            ownerSelection.value = []
-            await loadOrganizations()
-          }
-        }
-      })
-    }
     items.push(
       { label: '洞察来源', key: 'source', type: 'divider', span: 24 },
       {
@@ -141,17 +114,7 @@
         props: {
           filterable: true,
           disabled: Boolean(formModel.id),
-          placeholder: '请选择收集中或已关闭的调查',
-          onChange: (value: string) => {
-            const survey = surveys.value.find((item) => item.id === value)
-            if (survey?.tenantId && survey.tenantId !== formModel.tenantId) {
-              formModel.tenantId = survey.tenantId
-              formModel.organizationId = null
-              formModel.ownerEmployeeId = ''
-              ownerSelection.value = []
-              void loadOrganizations()
-            }
-          }
+          placeholder: '请选择收集中或已关闭的调查'
         },
         help: selectedSurvey.value
           ? `${selectedSurvey.value.status === 'open' ? '正在收集' : '已关闭'} · 匿名阈值 ${selectedSurvey.value.minimumGroupSize} 人`
@@ -226,9 +189,6 @@
     model: formModel,
     items: formItems,
     rules: computed(() => ({
-      tenantId: isPlatformSuper.value
-        ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-        : [],
       surveyId: [{ required: true, message: '请选择关联调查', trigger: 'change' }],
       dimension: [{ required: true, message: '请选择改善主题', trigger: 'change' }],
       title: [{ required: true, message: '请输入行动名称', trigger: 'blur' }],
@@ -239,14 +199,12 @@
   })
 
   const toSelection = (
-    reference?: Api.Hr.EmployeeExperienceReference | null,
-    tenantId?: string
+    reference?: Api.Hr.EmployeeExperienceReference | null
   ): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId || '',
             employeeNo: reference.employeeNo || '',
             employeeName: reference.employeeName || '未命名员工',
             jobTitle: reference.jobTitle,
@@ -254,29 +212,17 @@
           }
         ]
       : []
-  const loadTenants = async (): Promise<void> => {
-    if (!isPlatformSuper.value || tenantOptions.value.length) return
-    const response = await fetchGetEnableTenantList()
-    tenantOptions.value = (response.data ?? []).map((tenant) => ({
-      label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-      value: tenant.id!
-    }))
-  }
   const loadSurveys = async (): Promise<void> => {
     const response = await fetchEmployeeExperienceRecords<Api.Hr.EmployeeExperienceSurvey>(
       'survey',
-      { tenantId: formModel.tenantId, from: 0, to: 199 }
+      { from: 0, to: 199 }
     )
     surveys.value = (response.data ?? []).filter((survey) =>
       ['open', 'closed'].includes(survey.status)
     )
   }
   const loadOrganizations = async (): Promise<void> => {
-    if (!formModel.tenantId) {
-      organizationOptions.value = []
-      return
-    }
-    const response = await fetchEmployeeOrganizationOptions({ tenantId: formModel.tenantId })
+    const response = await fetchEmployeeOrganizationOptions()
     organizationOptions.value = (response.data ?? []).map((organization) => ({
       label: `${organization.organizationName} · ${organization.organizationCode}`,
       value: organization.id!
@@ -306,11 +252,10 @@
     dialogType.value = payload.type
     Object.assign(formModel, createInitialModel(), payload.editData ?? {})
     if (payload.presetSurvey) {
-      formModel.tenantId = payload.presetSurvey.tenantId
       formModel.surveyId = payload.presetSurvey.id
     }
     if (payload.presetDimension) formModel.dimension = payload.presetDimension
-    ownerSelection.value = toSelection(payload.editData?.ownerEmployee, formModel.tenantId)
+    ownerSelection.value = toSelection(payload.editData?.ownerEmployee)
     await nextTick()
     formRef.value?.clearValidate()
     await dialogRef.value?.handleOpen(undefined, {
@@ -321,7 +266,7 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          await Promise.all([loadTenants(), loadSurveys(), loadOrganizations()])
+          await Promise.all([loadSurveys(), loadOrganizations()])
           if (
             payload.presetSurvey &&
             !surveys.value.some((item) => item.id === payload.presetSurvey?.id)
@@ -350,7 +295,6 @@
     reference: Api.Hr.EmployeeExperienceReference
   ): Api.Hr.EmployeeExperienceSurvey => ({
     id: reference.id,
-    tenantId: reference.tenantId,
     surveyCode: reference.surveyCode || '',
     surveyName: reference.surveyName || '员工体验调查',
     surveyType: reference.surveyType || 'ad_hoc',

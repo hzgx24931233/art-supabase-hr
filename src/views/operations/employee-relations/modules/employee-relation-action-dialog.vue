@@ -25,7 +25,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="record?.tenantId"
             title="选择案件负责人"
             subtitle="负责人承担调查推进、期限控制和结案材料完整性"
             placeholder="请选择案件负责人"
@@ -255,14 +254,12 @@
   })
 
   const toSelection = (
-    reference?: Api.Hr.EmployeeRelationReference | null,
-    tenantId?: string
+    reference?: Api.Hr.EmployeeRelationReference | null
   ): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId || '',
             employeeNo: reference.employeeNo || '',
             employeeName: reference.employeeName || '未命名员工',
             jobTitle: reference.jobTitle,
@@ -281,7 +278,7 @@
       confidentialityLevel: target.confidentialityLevel,
       findingsSummary: target.findingsSummary || ''
     })
-    ownerSelection.value = toSelection(target.ownerEmployee, target.tenantId)
+    ownerSelection.value = toSelection(target.ownerEmployee)
   }
 
   const submit = async (): Promise<boolean> => {

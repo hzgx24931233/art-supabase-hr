@@ -57,8 +57,7 @@ const workspaceTransportConfigs: Record<WorkspaceEntity, WorkspaceTransportConfi
   },
   trainingEnrollment: {
     table: 'hr_training_enrollment',
-    select:
-      '*, plan:hr_training_plan!hr_training_enrollment_plan_id_tenant_id_fkey(id,plan_code,plan_name)',
+    select: '*, plan:hr_training_plan(id,plan_code,plan_name)',
     searchColumns: ['certificate_no', 'remark'],
     statusColumn: 'status',
     employeeColumn: 'employee_id',
@@ -72,15 +71,13 @@ const workspaceTransportConfigs: Record<WorkspaceEntity, WorkspaceTransportConfi
   },
   positionCompetency: {
     table: 'hr_position_competency',
-    select:
-      '*, competency:hr_competency!hr_position_competency_competency_id_tenant_id_fkey(id,competency_code,competency_name)',
+    select: '*, competency:hr_competency(id,competency_code,competency_name)',
     searchColumns: [],
     orderColumn: 'create_time'
   },
   employeeCompetency: {
     table: 'hr_employee_competency',
-    select:
-      '*, competency:hr_competency!hr_employee_competency_competency_id_tenant_id_fkey(id,competency_code,competency_name)',
+    select: '*, competency:hr_competency(id,competency_code,competency_name)',
     searchColumns: ['evidence'],
     employeeColumn: 'employee_id',
     orderColumn: 'assessed_date'
@@ -94,8 +91,7 @@ const workspaceTransportConfigs: Record<WorkspaceEntity, WorkspaceTransportConfi
   },
   candidate: {
     table: 'hr_candidate',
-    select:
-      '*, requisition:hr_recruitment_requisition!hr_candidate_requisition_id_tenant_id_fkey(id,requisition_no,position_id)',
+    select: '*, requisition:hr_recruitment_requisition(id,requisition_no,position_id)',
     searchColumns: ['candidate_name', 'phone', 'email'],
     statusColumn: 'stage',
     orderColumn: 'create_time'
@@ -231,7 +227,6 @@ export async function fetchHrWorkspaceRecords(
   if (params.status && config.statusColumn) query = query.eq(config.statusColumn, params.status)
   if (params.employeeId && config.employeeColumn)
     query = query.eq(config.employeeColumn, params.employeeId)
-  if (params.tenantId) query = query.eq('tenant_id', params.tenantId)
 
   const result = await responseHandle<WorkspaceRecord[]>(() => withRequestOptions(query, options), {
     showErrorMessage: true

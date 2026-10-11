@@ -65,7 +65,6 @@ export async function savePersonnelChange(record: Api.Hr.WorkspaceRecord) {
       'afterAssignmentSnapshot',
       'baseAssignmentId',
       'baseAssignmentUpdatedAt',
-      'tenantId',
       'status',
       'createBy',
       'createTime',

@@ -29,7 +29,6 @@
           <ArtEmployeeSelect
             v-model="form.model.subjectEmployeeId"
             v-model:selected-data="subjectSelection"
-            :tenant-id="form.model.tenantId"
             title="选择案件涉及员工"
             subtitle="案件涉及员工用于权限可见性与调查对象识别"
             placeholder="请选择涉及员工"
@@ -39,7 +38,6 @@
           <ArtEmployeeSelect
             v-model="form.model.reporterEmployeeId"
             v-model:selected-data="reporterSelection"
-            :tenant-id="form.model.tenantId"
             title="选择报告员工"
             subtitle="匿名报告不保存报告人引用"
             placeholder="请选择报告员工"
@@ -49,7 +47,6 @@
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="ownerSelection"
-            :tenant-id="form.model.tenantId"
             title="选择处置行动负责人"
             subtitle="负责人承担行动执行、证据留存和结果反馈"
             placeholder="请选择行动负责人"
@@ -70,7 +67,6 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchEmployeeRelationCaseDetail, saveEmployeeRelationRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -87,7 +83,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     caseNo: string
     caseType: string
     title: string
@@ -114,20 +109,18 @@
 
   const emit = defineEmits<{ success: [entity: Entity, type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('case')
   const dialogType = ref<DialogType>('add')
   const presetCase = shallowRef<Api.Hr.EmployeeRelationCase>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const subjectSelection = ref<EmployeeIntegrationItem[]>([])
   const reporterSelection = ref<EmployeeIntegrationItem[]>([])
   const ownerSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     caseNo: 'AUTO',
     caseType: 'workplace_conflict',
     title: '',
@@ -151,16 +144,6 @@
   const dictOptions = (code: string) => getDictMap.value[code] ?? []
   const caseItems = computed<FormItem[]>(() => {
     const items: FormItem[] = []
-    if (isPlatformSuper.value) {
-      items.push({
-        label: '所属租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        span: 24,
-        props: { filterable: true, placeholder: '请选择所属租户' }
-      })
-    }
     items.push(
       { label: '案件识别', key: 'identity', type: 'divider', span: 24 },
       {
@@ -284,9 +267,6 @@
     model: formModel,
     items: computed(() => (entity.value === 'case' ? caseItems.value : actionItems.value)),
     rules: computed(() => ({
-      tenantId: isPlatformSuper.value
-        ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-        : [],
       caseType:
         entity.value === 'case'
           ? [{ required: true, message: '请选择案件类型', trigger: 'change' }]
@@ -346,14 +326,12 @@
   )
 
   const toSelection = (
-    reference?: Api.Hr.EmployeeRelationReference | null,
-    tenantId?: string
+    reference?: Api.Hr.EmployeeRelationReference | null
   ): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId || '',
             employeeNo: reference.employeeNo || '',
             employeeName: reference.employeeName || '未命名员工',
             jobTitle: reference.jobTitle,
@@ -366,10 +344,10 @@
     Object.assign(formModel, createInitialModel(), record)
     if ('attachmentUrls' in record) {
       formModel.attachmentText = (record.attachmentUrls ?? []).join('\n')
-      subjectSelection.value = toSelection(record.subjectEmployee, record.tenantId)
-      reporterSelection.value = toSelection(record.reporterEmployee, record.tenantId)
+      subjectSelection.value = toSelection(record.subjectEmployee)
+      reporterSelection.value = toSelection(record.reporterEmployee)
     } else {
-      ownerSelection.value = toSelection(record.ownerEmployee, record.tenantId)
+      ownerSelection.value = toSelection(record.ownerEmployee)
     }
   }
 
@@ -377,7 +355,6 @@
     if (entity.value === 'case') {
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         caseNo: formModel.caseNo || 'AUTO',
         caseType: formModel.caseType,
         title: formModel.title.trim(),
@@ -399,7 +376,6 @@
     }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       caseId: formModel.caseId!,
       actionType: formModel.actionType,
       title: formModel.title.trim(),
@@ -441,7 +417,6 @@
     if (payload.editData) setFromRecord(payload.editData)
     if (payload.presetCase) {
       Object.assign(formModel, {
-        tenantId: payload.presetCase.tenantId,
         caseId: payload.presetCase.id
       })
     }
@@ -456,19 +431,12 @@
         payload.entity === 'case'
           ? `${payload.type === 'add' ? '新建' : '编辑'}员工关系案件`
           : `${payload.type === 'add' ? '新增' : '编辑'}处置行动`,
-      subtitle: '案件资料按租户隔离，敏感内容由独立权限控制',
+      subtitle: '案件资料受权限控制，敏感内容由独立权限保护',
       confirmText: payload.type === 'add' ? '创建记录' : '保存更改',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           if (payload.entity === 'case' && payload.type === 'edit' && payload.editData?.id) {
             const response = await fetchEmployeeRelationCaseDetail(payload.editData.id)
             if (response.data) setFromRecord(response.data)

@@ -14,8 +14,6 @@ declare namespace Api {
 
     interface Position {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       positionCode: string
       positionName: string
       organizationId?: string | null
@@ -40,7 +38,7 @@ declare namespace Api {
     }
 
     type PositionSearchParams = Partial<
-      Pick<Position, 'tenantId' | 'enabled'> &
+      Pick<Position, 'enabled'> &
         Api.Common.CommonSearchParams & {
           keyword?: string
           organizationIds?: string[]
@@ -49,7 +47,6 @@ declare namespace Api {
 
     interface PositionOption {
       id: string
-      tenantId: string
       positionCode: string
       positionName: string
       organizationId?: string | null
@@ -64,8 +61,6 @@ declare namespace Api {
 
     interface JobFamily {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       familyCode: string
       familyName: string
       enabled: boolean
@@ -80,8 +75,6 @@ declare namespace Api {
 
     interface Grade {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       gradeCode: string
       gradeName: string
       gradeLevel: number
@@ -97,8 +90,6 @@ declare namespace Api {
 
     interface JobProfile {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       familyId: string
       family?: Pick<JobFamily, 'id' | 'familyCode' | 'familyName'> | null
       defaultGradeId?: string | null
@@ -118,7 +109,6 @@ declare namespace Api {
     }
 
     interface JobArchitectureSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       keyword?: string
       enabled?: boolean
     }
@@ -158,8 +148,6 @@ declare namespace Api {
 
     interface PayComponent {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       componentCode: string
       componentName: string
       category: CompensationComponentCategory
@@ -190,8 +178,6 @@ declare namespace Api {
 
     interface CompensationPlan {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       planCode: string
       planName: string
       currencyCode: string
@@ -210,8 +196,6 @@ declare namespace Api {
 
     interface SalaryBand {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       gradeId: string
       grade?: Pick<Grade, 'id' | 'gradeCode' | 'gradeName' | 'gradeLevel'> | null
       currencyCode: string
@@ -243,8 +227,6 @@ declare namespace Api {
 
     interface EmployeeCompensation {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       employeeId: string
       employee?: Pick<Employee, 'id' | 'employeeNo' | 'employeeName'> | null
       organization?: Pick<
@@ -279,7 +261,6 @@ declare namespace Api {
     type CompensationRecord = EmployeeCompensation | CompensationPlan | PayComponent | SalaryBand
 
     interface CompensationSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       keyword?: string
       status?: string
     }
@@ -308,7 +289,6 @@ declare namespace Api {
 
     interface CompensationReviewCycle {
       id?: string
-      tenantId?: string
       cycleCode: string
       cycleName: string
       reviewYear: number
@@ -334,7 +314,6 @@ declare namespace Api {
 
     interface CompensationReviewItem {
       id?: string
-      tenantId?: string
       cycleId: string
       cycleName?: string
       cycleStatus?: CompensationReviewCycleStatus
@@ -368,7 +347,6 @@ declare namespace Api {
 
     interface CompensationReviewBudget {
       id?: string
-      tenantId?: string
       cycleId: string
       cycleName?: string
       organizationId?: string | null
@@ -389,7 +367,6 @@ declare namespace Api {
       CompensationReviewCycle | CompensationReviewItem | CompensationReviewBudget
 
     interface CompensationReviewSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       cycleId?: string
       keyword?: string
       status?: string
@@ -397,7 +374,6 @@ declare namespace Api {
 
     interface CompensationReviewReference {
       id: string
-      tenantId?: string
       code?: string
       name?: string
       status?: CompensationReviewCycleStatus
@@ -440,7 +416,6 @@ declare namespace Api {
 
     interface ContingentWorkforceReference {
       id: string
-      tenantId?: string
       code?: string
       name: string
       status?: string
@@ -451,7 +426,6 @@ declare namespace Api {
 
     interface ExternalVendor {
       id?: string
-      tenantId?: string
       vendorCode: string
       vendorName: string
       registrationNo?: string | null
@@ -474,7 +448,6 @@ declare namespace Api {
 
     interface ExternalWorker {
       id?: string
-      tenantId?: string
       workerNo: string
       workerName: string
       workerType: ExternalWorkerType
@@ -494,7 +467,6 @@ declare namespace Api {
 
     interface ExternalEngagement {
       id?: string
-      tenantId?: string
       engagementNo: string
       workerId: string
       workerNo?: string
@@ -531,7 +503,6 @@ declare namespace Api {
 
     interface ExternalEngagementControl {
       id?: string
-      tenantId?: string
       engagementId: string
       engagementNo?: string
       engagementStatus?: ExternalEngagementStatus
@@ -562,7 +533,6 @@ declare namespace Api {
       ExternalVendor | ExternalWorker | ExternalEngagement | ExternalEngagementControl
 
     interface ContingentWorkforceSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       engagementId?: string
       keyword?: string
       status?: string
@@ -598,7 +568,6 @@ declare namespace Api {
 
     interface HrPolicyDocument {
       id?: string
-      tenantId?: string
       policyCode: string
       policyTitle: string
       category: string
@@ -627,7 +596,6 @@ declare namespace Api {
 
     interface HrPolicyReceipt {
       id?: string
-      tenantId?: string
       policyId: string
       policyCode?: string
       policyTitle?: string
@@ -658,7 +626,6 @@ declare namespace Api {
 
     interface PolicyAcknowledgementReference {
       id: string
-      tenantId?: string
       code?: string
       name: string
       status?: string
@@ -666,7 +633,6 @@ declare namespace Api {
     }
 
     interface PolicyAcknowledgementSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       policyId?: string
       keyword?: string
       status?: string
@@ -702,7 +668,6 @@ declare namespace Api {
 
     interface OrganizationDesignScenario {
       id?: string
-      tenantId?: string
       scenarioCode: string
       scenarioName: string
       objective: string
@@ -733,7 +698,6 @@ declare namespace Api {
 
     interface OrganizationDesignChange {
       id?: string
-      tenantId?: string
       scenarioId: string
       scenarioCode?: string
       scenarioName?: string
@@ -766,7 +730,6 @@ declare namespace Api {
 
     interface OrganizationDesignReference {
       id: string
-      tenantId?: string
       code?: string
       name: string
       parentId?: string | null
@@ -777,7 +740,6 @@ declare namespace Api {
     }
 
     interface OrganizationDesignSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       scenarioId?: string
       keyword?: string
       status?: string
@@ -821,7 +783,6 @@ declare namespace Api {
 
     interface InternalMobilityOpportunity {
       id?: string
-      tenantId?: string
       opportunityCode: string
       opportunityTitle: string
       opportunityType: InternalOpportunityType
@@ -858,7 +819,6 @@ declare namespace Api {
 
     interface InternalMobilityApplication {
       id?: string
-      tenantId?: string
       opportunityId: string
       opportunityCode?: string
       opportunityTitle?: string
@@ -898,7 +858,6 @@ declare namespace Api {
 
     interface InternalMobilityReference {
       id: string
-      tenantId?: string
       code?: string
       name: string
       organizationId?: string | null
@@ -906,7 +865,6 @@ declare namespace Api {
     }
 
     interface InternalMobilitySearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       opportunityId?: string
       keyword?: string
       status?: string
@@ -943,7 +901,6 @@ declare namespace Api {
 
     interface AbsenceReference {
       id: string
-      tenantId?: string
       code?: string
       name?: string
       unit?: LeaveUnit
@@ -955,8 +912,6 @@ declare namespace Api {
 
     interface LeaveType {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       leaveCode: string
       leaveName: string
       category: string
@@ -989,8 +944,6 @@ declare namespace Api {
 
     interface LeavePolicy {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       leaveTypeId: string
       leaveType?: Pick<LeaveType, 'id' | 'leaveCode' | 'leaveName' | 'unit'> | null
       policyCode: string
@@ -1020,8 +973,6 @@ declare namespace Api {
 
     interface LeaveBalance {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       employeeId: string
       employee?: Pick<Employee, 'id' | 'employeeNo' | 'employeeName'> | null
       organization?: Pick<SystemManage.OrganizationListItem, 'organizationName'> | null
@@ -1046,8 +997,6 @@ declare namespace Api {
 
     interface LeaveRequest {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       requestNo?: string
       employeeId: string
       employee?: Pick<Employee, 'id' | 'employeeNo' | 'employeeName'> | null
@@ -1078,7 +1027,6 @@ declare namespace Api {
 
     interface LeaveLedger {
       id: string
-      tenantId: string
       balanceId: string
       employeeId: string
       employee?: Pick<Employee, 'id' | 'employeeNo' | 'employeeName'> | null
@@ -1102,7 +1050,6 @@ declare namespace Api {
     type AbsenceRecord = LeaveRequest | LeaveBalance | LeavePolicy | LeaveType | LeaveLedger
 
     interface AbsenceSearchParams extends Api.Common.CommonSearchParams {
-      tenantId?: string
       keyword?: string
       status?: string
       balanceYear?: number
@@ -1146,7 +1093,6 @@ declare namespace Api {
 
     interface PersonnelChangeEmployeeOption {
       id: string
-      tenantId: string
       employeeNo: string
       employeeName: string
       avatarUrl?: string | null
@@ -1185,8 +1131,6 @@ declare namespace Api {
 
     interface Employee {
       id?: string
-      tenantId?: string
-      tenant?: Pick<SystemManage.TenantListItem, 'id' | 'tenantCode' | 'tenantName'> | null
       organizationId?: string | null
       organization?: Pick<
         SystemManage.OrganizationListItem,
@@ -1231,7 +1175,7 @@ declare namespace Api {
     }
 
     type EmployeeSearchParams = Partial<
-      Pick<Employee, 'tenantId' | 'organizationId' | 'employmentStatus' | 'employmentType'> &
+      Pick<Employee, 'organizationId' | 'employmentStatus' | 'employmentType'> &
         Api.Common.CommonSearchParams & {
           keyword?: string
           hireDateRange?: string[]
@@ -1243,7 +1187,6 @@ declare namespace Api {
 
     interface EmployeeContract {
       id?: string
-      tenantId?: string
       employeeId?: string
       contractNo: string
       contractType: string
@@ -1268,7 +1211,6 @@ declare namespace Api {
 
     interface EmployeeEducation {
       id?: string
-      tenantId?: string
       employeeId?: string
       schoolName: string
       majorName?: string | null
@@ -1283,7 +1225,6 @@ declare namespace Api {
 
     interface EmployeeWorkExperience {
       id?: string
-      tenantId?: string
       employeeId?: string
       companyName: string
       departmentName?: string | null
@@ -1298,7 +1239,6 @@ declare namespace Api {
 
     interface EmployeeTraining {
       id?: string
-      tenantId?: string
       employeeId?: string
       trainingName: string
       trainingType: string
@@ -1314,7 +1254,6 @@ declare namespace Api {
 
     interface EmployeeReward {
       id?: string
-      tenantId?: string
       employeeId?: string
       recordType: string
       recordLevel?: string | null
@@ -1348,7 +1287,6 @@ declare namespace Api {
 
     interface EmployeeSelectorItem {
       id: string
-      tenantId: string
       organizationId?: string | null
       employeeNo: string
       employeeName: string
@@ -1403,7 +1341,6 @@ declare namespace Api {
 
     interface WorkspaceRecord {
       id?: string
-      tenantId?: string
       employeeId?: string | null
       employee?: WorkspaceReference | null
       organizationId?: string | null
@@ -1561,7 +1498,6 @@ declare namespace Api {
       keyword?: string
       status?: string
       employeeId?: string
-      tenantId?: string
     }
 
     type RecruitmentEntity =
@@ -1569,7 +1505,6 @@ declare namespace Api {
 
     interface RecruitmentReference {
       id: string
-      tenantId?: string
       code?: string
       name: string
       organizationName?: string
@@ -1583,7 +1518,6 @@ declare namespace Api {
 
     interface RecruitmentBaseRecord {
       id?: string
-      tenantId?: string
       createBy?: string | null
       createTime?: string
       updateBy?: string | null
@@ -1727,7 +1661,6 @@ declare namespace Api {
     interface RecruitmentSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
       status?: string
-      tenantId?: string
     }
 
     interface RecruitmentListResult<TRecord extends RecruitmentRecord = RecruitmentRecord> {
@@ -1772,7 +1705,6 @@ declare namespace Api {
 
     interface WorkforcePlanningReference {
       id: string
-      tenantId?: string
       code?: string | null
       name?: string | null
       status?: string | null
@@ -1785,7 +1717,6 @@ declare namespace Api {
 
     interface WorkforcePlanCycle {
       id?: string
-      tenantId?: string
       planNo: string
       planName: string
       scenario: WorkforcePlanScenario
@@ -1803,7 +1734,6 @@ declare namespace Api {
       activatedAt?: string | null
       closedAt?: string | null
       remark?: string | null
-      tenant?: WorkforcePlanningReference
       owner?: WorkforcePlanningReference | null
       lineCount?: number
       baselineCount?: number
@@ -1817,7 +1747,6 @@ declare namespace Api {
 
     interface WorkforcePlanLine {
       id?: string
-      tenantId?: string
       planId: string
       organizationId: string
       positionId: string
@@ -1847,7 +1776,6 @@ declare namespace Api {
 
     interface WorkforceEffectiveHeadcount {
       id?: string
-      tenantId?: string
       organizationId: string
       positionId: string
       approvedCount: number
@@ -1901,7 +1829,6 @@ declare namespace Api {
 
     interface WorkforcePlanningSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
-      tenantId?: string
       status?: string
       planId?: string
     }
@@ -1922,7 +1849,6 @@ declare namespace Api {
 
     interface LifecycleReference {
       id: string
-      tenantId?: string
       code?: string | null
       name?: string | null
       status?: string | null
@@ -1944,7 +1870,6 @@ declare namespace Api {
 
     interface LifecycleCase {
       id?: string
-      tenantId?: string
       caseNo: string
       employeeId: string
       caseType: LifecycleCaseType
@@ -1983,7 +1908,6 @@ declare namespace Api {
 
     interface LifecycleTask {
       id?: string
-      tenantId?: string
       lifecycleCaseId: string
       templateTaskId?: string | null
       taskType: string
@@ -2014,7 +1938,6 @@ declare namespace Api {
 
     interface LifecycleTemplate {
       id?: string
-      tenantId?: string
       templateCode: string
       templateName: string
       caseType: LifecycleCaseType
@@ -2029,7 +1952,6 @@ declare namespace Api {
 
     interface LifecycleTemplateTask {
       id?: string
-      tenantId?: string
       templateId: string
       taskType: string
       taskName: string
@@ -2049,7 +1971,6 @@ declare namespace Api {
 
     interface LifecycleSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
-      tenantId?: string
       status?: string
       caseId?: string
       templateId?: string
@@ -2091,7 +2012,6 @@ declare namespace Api {
 
     interface ComplianceEvent {
       id: string
-      tenantId?: string
       entityType: ComplianceRecordEntity
       entityId: string
       eventType: string
@@ -2120,7 +2040,6 @@ declare namespace Api {
 
     interface ComplianceQualification {
       id?: string
-      tenantId?: string
       employeeId: string
       qualificationType: string
       qualificationName: string
@@ -2153,7 +2072,6 @@ declare namespace Api {
     interface ComplianceRisk {
       entityType: ComplianceRecordEntity
       recordId: string
-      tenantId?: string
       subject: string
       status: string
       dueDate: string
@@ -2171,7 +2089,6 @@ declare namespace Api {
       keyword?: string
       status?: string
       riskStatus?: string
-      tenantId?: string
     }
 
     interface ComplianceListResult<TRecord extends ComplianceRecord = ComplianceRecord> {
@@ -2212,7 +2129,6 @@ declare namespace Api {
 
     interface ServiceDeliveryReference {
       id: string
-      tenantId?: string
       code?: string | null
       name?: string | null
       category?: string | null
@@ -2232,7 +2148,6 @@ declare namespace Api {
 
     interface ServiceCatalog {
       id?: string
-      tenantId?: string
       serviceCode: string
       serviceName: string
       category: string
@@ -2251,7 +2166,6 @@ declare namespace Api {
 
     interface ServiceRequestEvent {
       id: string
-      tenantId?: string
       requestId: string
       eventType: string
       fromStatus?: ServiceRequestStatus | null
@@ -2266,7 +2180,6 @@ declare namespace Api {
 
     interface ServiceRequest {
       id?: string
-      tenantId?: string
       requestNo: string
       employeeId: string
       serviceId: string
@@ -2304,7 +2217,6 @@ declare namespace Api {
       status?: string
       category?: string
       scope?: 'mine' | 'team'
-      tenantId?: string
     }
 
     interface ServiceDeliveryListResult<
@@ -2340,7 +2252,6 @@ declare namespace Api {
 
     interface EmployeeRelationReference {
       id: string
-      tenantId?: string
       employeeNo?: string | null
       employeeName?: string | null
       jobTitle?: string | null
@@ -2369,7 +2280,6 @@ declare namespace Api {
 
     interface EmployeeRelationAction {
       id?: string
-      tenantId?: string
       caseId: string
       actionType: string
       title: string
@@ -2389,7 +2299,6 @@ declare namespace Api {
 
     interface EmployeeRelationEvent {
       id: string
-      tenantId?: string
       caseId: string
       eventType: string
       fromStatus?: EmployeeRelationCaseStatus | null
@@ -2404,7 +2313,6 @@ declare namespace Api {
 
     interface EmployeeRelationCase {
       id?: string
-      tenantId?: string
       caseNo: string
       caseType: string
       title: string
@@ -2448,7 +2356,6 @@ declare namespace Api {
       status?: string
       caseType?: string
       severity?: string
-      tenantId?: string
     }
 
     interface EmployeeRelationListResult<
@@ -2488,7 +2395,6 @@ declare namespace Api {
 
     interface BenefitReference {
       id: string
-      tenantId?: string
       employeeNo?: string | null
       employeeName?: string | null
       jobTitle?: string | null
@@ -2519,7 +2425,6 @@ declare namespace Api {
 
     interface BenefitPlan {
       id?: string
-      tenantId?: string
       planCode: string
       planName: string
       planType: string
@@ -2542,7 +2447,6 @@ declare namespace Api {
 
     interface BenefitOption {
       id?: string
-      tenantId?: string
       planId: string
       optionCode: string
       optionName: string
@@ -2563,7 +2467,6 @@ declare namespace Api {
 
     interface BenefitLifeEvent {
       id?: string
-      tenantId?: string
       employeeId: string
       eventType: string
       eventDate: string
@@ -2590,7 +2493,6 @@ declare namespace Api {
 
     interface BenefitEnrollment {
       id?: string
-      tenantId?: string
       employeeId: string
       planId: string
       optionId: string
@@ -2621,7 +2523,6 @@ declare namespace Api {
 
     interface BenefitAuditEvent {
       id: string
-      tenantId: string
       entityType: BenefitRecordKind
       entityId: string
       eventType: string
@@ -2640,7 +2541,6 @@ declare namespace Api {
       keyword?: string
       status?: string
       planType?: string
-      tenantId?: string
       from?: number
       to?: number
     }
@@ -2654,7 +2554,6 @@ declare namespace Api {
     interface BenefitPayrollInput {
       enrollmentId: string
       enrollmentNo: string
-      tenantId: string
       employeeId: string
       employeeNo: string
       employeeName: string
@@ -2700,7 +2599,6 @@ declare namespace Api {
 
     interface EmployeeExperienceReference {
       id: string
-      tenantId?: string
       surveyCode?: string | null
       surveyName?: string | null
       surveyType?: string | null
@@ -2712,7 +2610,6 @@ declare namespace Api {
 
     interface EmployeeExperienceQuestion {
       id?: string
-      tenantId?: string
       surveyId: string
       dimension: string
       questionText: string
@@ -2726,7 +2623,6 @@ declare namespace Api {
 
     interface EmployeeExperienceEvent {
       id: string
-      tenantId: string
       entityType: 'survey' | 'action'
       entityId: string
       eventType: string
@@ -2741,7 +2637,6 @@ declare namespace Api {
 
     interface EmployeeExperienceSurvey {
       id?: string
-      tenantId?: string
       surveyCode: string
       surveyName: string
       surveyType: string
@@ -2769,7 +2664,6 @@ declare namespace Api {
 
     interface EmployeeExperienceMySurvey {
       id: string
-      tenantId: string
       surveyId: string
       surveyCode: string
       surveyName: string
@@ -2791,7 +2685,6 @@ declare namespace Api {
 
     interface EmployeeExperienceInsight {
       surveyId: string
-      tenantId: string
       surveyCode: string
       surveyName: string
       surveyType: string
@@ -2839,7 +2732,6 @@ declare namespace Api {
 
     interface EmployeeExperienceAction {
       id?: string
-      tenantId?: string
       surveyId: string
       organizationId?: string | null
       dimension: string
@@ -2877,7 +2769,6 @@ declare namespace Api {
       keyword?: string
       status?: string
       surveyType?: string
-      tenantId?: string
       from?: number
       to?: number
     }
@@ -2908,7 +2799,6 @@ declare namespace Api {
 
     interface TimeAttendanceReference {
       id: string
-      tenantId?: string
       code?: string | null
       name?: string | null
       startTime?: string | null
@@ -2932,7 +2822,6 @@ declare namespace Api {
 
     interface TimeAttendanceShift {
       id?: string
-      tenantId?: string
       shiftCode: string
       shiftName: string
       shiftType: string
@@ -2952,7 +2841,6 @@ declare namespace Api {
 
     interface TimeAttendanceAssignment {
       id?: string
-      tenantId?: string
       employeeId: string
       shiftId: string
       workDate: string
@@ -2966,7 +2854,6 @@ declare namespace Api {
 
     interface TimeAttendanceDailyRecord {
       id?: string
-      tenantId?: string
       employeeId: string
       shiftId?: string | null
       workDate: string
@@ -2996,7 +2883,6 @@ declare namespace Api {
 
     interface TimeAttendanceCorrection {
       id?: string
-      tenantId?: string
       correctionNo?: string
       attendanceRecordId: string
       employeeId?: string
@@ -3018,7 +2904,6 @@ declare namespace Api {
 
     interface TimeAttendancePeriod {
       id?: string
-      tenantId?: string
       periodMonth: string
       status: TimeAttendancePeriodStatus
       recordCount: number
@@ -3044,7 +2929,6 @@ declare namespace Api {
 
     interface TimeAttendanceSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
-      tenantId?: string
       status?: string
       periodMonth?: string
     }
@@ -3071,7 +2955,6 @@ declare namespace Api {
 
     interface PerformanceReference {
       id: string
-      tenantId?: string
       code?: string | null
       name?: string | null
       status?: string | null
@@ -3081,7 +2964,6 @@ declare namespace Api {
 
     interface PerformanceCycle {
       id?: string
-      tenantId?: string
       cycleCode: string
       cycleName: string
       startDate: string
@@ -3105,7 +2987,6 @@ declare namespace Api {
 
     interface PerformanceReview {
       id?: string
-      tenantId?: string
       cycleId: string
       employeeId: string
       reviewerEmployeeId?: string | null
@@ -3138,7 +3019,6 @@ declare namespace Api {
 
     interface PerformanceGoal {
       id?: string
-      tenantId?: string
       reviewId: string
       goalName: string
       targetDescription: string
@@ -3162,7 +3042,6 @@ declare namespace Api {
 
     interface PerformanceCheckIn {
       id?: string
-      tenantId?: string
       reviewId: string
       checkInDate: string
       progressPercent: number
@@ -3183,7 +3062,6 @@ declare namespace Api {
 
     interface PerformanceCalibrationSession {
       id?: string
-      tenantId?: string
       sessionNo: string
       sessionName: string
       cycleId: string
@@ -3205,7 +3083,6 @@ declare namespace Api {
 
     interface PerformanceCalibrationItem {
       id?: string
-      tenantId?: string
       sessionId: string
       reviewId: string
       originalScore: number
@@ -3259,7 +3136,6 @@ declare namespace Api {
 
     interface PerformanceSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
-      tenantId?: string
       status?: string
       cycleId?: string
       sessionId?: string
@@ -3277,7 +3153,6 @@ declare namespace Api {
 
     interface LearningReference {
       id: string
-      tenantId?: string
       code?: string | null
       name?: string | null
       status?: string | null
@@ -3290,7 +3165,6 @@ declare namespace Api {
 
     interface LearningPlan {
       id?: string
-      tenantId?: string
       planCode: string
       planName: string
       trainingType: string
@@ -3316,7 +3190,6 @@ declare namespace Api {
 
     interface LearningCourse {
       id?: string
-      tenantId?: string
       courseCode: string
       courseName: string
       category: string
@@ -3340,7 +3213,6 @@ declare namespace Api {
 
     interface LearningSession {
       id?: string
-      tenantId?: string
       sessionCode: string
       planId: string
       courseId: string
@@ -3365,7 +3237,6 @@ declare namespace Api {
 
     interface LearningCourseCompetency {
       id?: string
-      tenantId?: string
       courseId: string
       competencyId: string
       targetLevel: string
@@ -3377,7 +3248,6 @@ declare namespace Api {
 
     interface LearningEnrollment {
       id?: string
-      tenantId?: string
       planId: string
       sessionId: string
       employeeId: string
@@ -3401,7 +3271,6 @@ declare namespace Api {
 
     interface LearningCertificate {
       id?: string
-      tenantId?: string
       enrollmentId: string
       employeeId: string
       courseId: string
@@ -3443,7 +3312,6 @@ declare namespace Api {
 
     interface LearningSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
-      tenantId?: string
       status?: string
     }
 
@@ -3456,7 +3324,6 @@ declare namespace Api {
 
     interface SuccessionReference {
       id: string
-      tenantId: string
       code?: string
       name: string
       positionName?: string | null
@@ -3470,7 +3337,6 @@ declare namespace Api {
 
     interface SuccessionPlan {
       id?: string
-      tenantId?: string
       planCode: string
       positionId: string
       planName: string
@@ -3483,7 +3349,6 @@ declare namespace Api {
       ownerEmployeeId?: string | null
       status: SuccessionPlanStatus
       notes?: string | null
-      tenant?: SuccessionReference
       position?: SuccessionReference
       owner?: SuccessionReference | null
       activeCandidateCount?: number
@@ -3494,7 +3359,6 @@ declare namespace Api {
 
     interface SuccessionCandidate {
       id?: string
-      tenantId?: string
       planId: string
       employeeId: string
       readiness: SuccessionReadiness
@@ -3519,7 +3383,6 @@ declare namespace Api {
 
     interface SuccessionDevelopmentAction {
       id?: string
-      tenantId?: string
       candidateId: string
       actionType:
         | 'mentoring'
@@ -3562,7 +3425,6 @@ declare namespace Api {
     interface SuccessionSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
       status?: string
-      tenantId?: string
       from?: number
       to?: number
     }

@@ -22,28 +22,24 @@
           <ArtEmployeeSelect
             v-model="form.model.interviewerEmployeeId"
             v-model:selected-data="employeeSelection.interviewer"
-            :tenant-id="form.model.tenantId"
           />
         </template>
         <template #ownerEmployeeId>
           <ArtEmployeeSelect
             v-model="form.model.ownerEmployeeId"
             v-model:selected-data="employeeSelection.owner"
-            :tenant-id="form.model.tenantId"
           />
         </template>
         <template #buddyEmployeeId>
           <ArtEmployeeSelect
             v-model="form.model.buddyEmployeeId"
             v-model:selected-data="employeeSelection.buddy"
-            :tenant-id="form.model.tenantId"
           />
         </template>
         <template #onboardEmployeeId>
           <ArtEmployeeSelect
             v-model="form.model.onboardEmployeeId"
             v-model:selected-data="employeeSelection.onboard"
-            :tenant-id="form.model.tenantId"
           />
         </template>
       </ArtForm>
@@ -56,13 +52,9 @@
   import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtForm, {
-    type FormItem,
-    type FormItemOption
-  } from '@/components/core/forms/art-form/index.vue'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import {
     fetchEmployeeOrganizationOptions,
@@ -77,7 +69,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     requisitionNo: string
     organizationId?: string
     positionId?: string
@@ -140,11 +131,10 @@
 
   const emit = defineEmits<{ success: [type: DialogType] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('requisition')
-  const tenantOptions = shallowRef<FormItemOption[]>([])
   const employeeSelection = reactive<EmployeeSelectionState>({
     interviewer: [],
     owner: [],
@@ -153,7 +143,6 @@
   })
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     requisitionNo: '',
     organizationId: undefined,
     positionId: undefined,
@@ -212,19 +201,6 @@
   })
 
   const model = reactive<FormModel>(createInitialModel())
-  const commonTenantItem = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: { filterable: true, placeholder: '请选择所属租户', onChange: handleTenantChange }
-          }
-        ]
-      : []
-  )
 
   const form = reactive<{
     model: FormModel
@@ -235,13 +211,12 @@
     items: computed(() => {
       if (entity.value === 'requisition')
         return [
-          ...commonTenantItem.value,
           input('requisitionNo', '需求编号', '如 REC-2026-001'),
           {
             label: '招聘组织',
             key: 'organizationId',
             type: 'select',
-            api: () => fetchEmployeeOrganizationOptions({ tenantId: model.tenantId }),
+            api: () => fetchEmployeeOrganizationOptions(),
             resultField: 'data',
             labelField: 'organizationName',
             valueField: 'id',
@@ -270,7 +245,6 @@
         ]
       if (entity.value === 'candidate')
         return [
-          ...commonTenantItem.value,
           remoteSelect('requisitionId', '招聘需求', 'requisition', '请选择招聘中的有效需求'),
           input('candidateName', '候选人姓名'),
           input('phone', '联系电话'),
@@ -285,7 +259,6 @@
         ]
       if (entity.value === 'interview')
         return [
-          ...commonTenantItem.value,
           remoteSelect('candidateId', '候选人', 'candidate', '请选择筛选中或面试中的候选人'),
           number('roundNo', '面试轮次', { min: 1, max: 20, precision: 0 }),
           dict('interviewType', '面试类型', 'hrInterviewType'),
@@ -296,7 +269,6 @@
         ]
       if (entity.value === 'offer')
         return [
-          ...commonTenantItem.value,
           remoteSelect('candidateId', '候选人', 'candidate', '请选择面试中或 Offer 阶段候选人'),
           input('offerNo', 'Offer 编号', '留空时系统自动生成'),
           dict('employmentType', '用工类型', 'hrEmploymentType'),
@@ -309,7 +281,6 @@
         ]
       if (entity.value === 'handoff')
         return [
-          ...commonTenantItem.value,
           remoteSelect('offerId', '已接受 Offer', 'accepted_offer', '请选择已接受的 Offer'),
           date('plannedOnboardDate', '计划入职日期'),
           { label: '交接负责人', key: 'ownerEmployeeId', type: 'input' },
@@ -318,7 +289,6 @@
           textarea('handoffNote', '交接说明', '记录报到安排、特殊准备事项和已确认信息')
         ]
       return [
-        ...commonTenantItem.value,
         remoteSelect('handoffId', '入职交接', 'handoff', '请选择待处理的入职交接'),
         dict('taskCategory', '任务分类', 'hrOnboardingTaskCategory'),
         input('taskTitle', '任务名称'),
@@ -337,9 +307,7 @@
       ]
     }),
     rules: computed(() => {
-      const rules: FormRules<FormModel> = {
-        tenantId: isPlatformSuper.value ? required('请选择所属租户', 'change') : []
-      }
+      const rules: FormRules<FormModel> = {}
       const fields: Partial<Record<Entity, Array<keyof FormModel>>> = {
         requisition: [
           'requisitionNo',
@@ -498,7 +466,7 @@
     label,
     key: String(key),
     type: 'select',
-    api: () => fetchRecruitmentOptions(kind, model.tenantId),
+    api: () => fetchRecruitmentOptions(kind),
     resultField: 'data',
     valueField: 'id',
     labelFn: (option) =>
@@ -510,14 +478,12 @@
     Object.assign(employeeSelection, { interviewer: [], owner: [], buddy: [], onboard: [] })
   }
   const toEmployeeSelection = (
-    reference: Api.Hr.RecruitmentReference | null | undefined,
-    tenantId?: string
+    reference: Api.Hr.RecruitmentReference | null | undefined
   ): EmployeeIntegrationItem[] =>
     reference
       ? [
           {
             id: reference.id,
-            tenantId: tenantId ?? '',
             employeeNo: reference.code ?? '',
             employeeName: reference.name,
             employmentStatus: 'active'
@@ -530,17 +496,17 @@
     if (!row) return
     if (entity.value === 'interview') {
       const interview = row as Api.Hr.RecruitmentInterview
-      employeeSelection.interviewer = toEmployeeSelection(interview.interviewer, interview.tenantId)
+      employeeSelection.interviewer = toEmployeeSelection(interview.interviewer)
     }
     if (entity.value === 'handoff') {
       const handoff = row as Api.Hr.RecruitmentHandoff
-      employeeSelection.owner = toEmployeeSelection(handoff.owner, handoff.tenantId)
-      employeeSelection.buddy = toEmployeeSelection(handoff.buddy, handoff.tenantId)
-      employeeSelection.onboard = toEmployeeSelection(handoff.onboardEmployee, handoff.tenantId)
+      employeeSelection.owner = toEmployeeSelection(handoff.owner)
+      employeeSelection.buddy = toEmployeeSelection(handoff.buddy)
+      employeeSelection.onboard = toEmployeeSelection(handoff.onboardEmployee)
     }
     if (entity.value === 'task') {
       const task = row as Api.Hr.RecruitmentTask
-      employeeSelection.owner = toEmployeeSelection(task.owner, task.tenantId)
+      employeeSelection.owner = toEmployeeSelection(task.owner)
     }
   }
 
@@ -551,22 +517,6 @@
   const reloadOptions = async (): Promise<void> => {
     await nextTick()
     await formRef.value?.reloadOptions()
-  }
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(form.model, {
-      organizationId: undefined,
-      positionId: undefined,
-      requisitionId: undefined,
-      candidateId: undefined,
-      offerId: undefined,
-      handoffId: undefined,
-      interviewerEmployeeId: undefined,
-      ownerEmployeeId: undefined,
-      buddyEmployeeId: undefined,
-      onboardEmployeeId: undefined
-    })
-    resetEmployeeSelections()
-    await reloadOptions()
   }
   const handleOrganizationChange = async (): Promise<void> => {
     form.model.positionId = undefined
@@ -589,7 +539,7 @@
   }
 
   const toRecord = (): RecordItem => {
-    const common = { id: form.model.id, tenantId: form.model.tenantId }
+    const common = { id: form.model.id }
     if (entity.value === 'requisition')
       return {
         ...common,
@@ -710,19 +660,12 @@
     }[nextEntity]
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${label}`,
-      subtitle: '招聘数据按租户隔离，关键阶段通过受控动作推进并保留审计记录',
+      subtitle: '招聘数据受权限控制，关键阶段通过受控动作推进并保留审计记录',
       confirmText: row ? '保存更改' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await reloadOptions()
           if (nextEntity === 'requisition' && form.model.organizationId)
             await formRef.value?.reloadOptions('positionId')

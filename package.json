@@ -26,7 +26,7 @@
     "check": "pnpm boundary:audit && pnpm ui:audit && pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test:unit"
   },
   "dependencies": {
-    "art-supabase-pro": "https://gitee.com/wangyanghub/art-supabase-pro/repository/archive/70c6bddad553a31083d5fc5a43bb06f1579ff492.tar.gz"
+    "art-supabase-pro": "file:..\\..\\packages\\art-supabase-pro-1.0.0.tgz"
   },
   "peerDependencies": {
     "@vueuse/core": "^14.3.0",
@@ -67,6 +67,7 @@
     "unplugin-element-plus": "^0.11.2",
     "unplugin-vue-components": "^32.1.0",
     "vite": "^8.1.0",
+    "vue-draggable-plus": "0.6.1",
     "vue-tsc": "~3.3.5"
   },
   "repository": {

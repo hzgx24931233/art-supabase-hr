@@ -102,7 +102,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     actLeaveRequest,
     deleteAbsenceRecord,
@@ -173,16 +172,14 @@
   )
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('request')
   const activeTab = computed(() => tabs.find((tab) => tab.entity === activeEntity.value) ?? tabs[0])
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<AbsenceDialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const tableState = reactive<{ searchQuery: Api.Hr.AbsenceSearchParams }>({
     searchQuery: {
-      tenantId: '',
       status: '',
       keyword: '',
       balanceYear: dayjs().year()
@@ -244,14 +241,6 @@
 
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: { clearable: true, filterable: true, placeholder: '全部租户' }
-      })
     if (statusDictionary.value)
       items.push({
         label: '状态',
@@ -659,7 +648,7 @@
   }
 
   const refreshOverview = async (): Promise<void> => {
-    const response = await fetchAbsenceOverview(tableState.searchQuery.tenantId)
+    const response = await fetchAbsenceOverview()
     if (response.data) Object.assign(overview, response.data)
   }
 
@@ -755,13 +744,6 @@
       userStore.ensureDictLoaded('hrLeaveSession'),
       userStore.ensureDictLoaded('hrLeaveLedgerType')
     ])
-    if (isPlatformSuper.value) {
-      const response = await fetchGetEnableTenantList()
-      tenantOptions.value = (response.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await refreshOverview()
   })
 </script>

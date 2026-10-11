@@ -28,13 +28,7 @@
 
     <section class="hr-profile-page__summary art-card-xs">
       <div class="hr-profile-page__avatar">
-        <ArtUploadImage
-          v-model="form.avatarUrl"
-          :resource-tenant-id="form.tenantId || ''"
-          title="上传头像"
-          :size="104"
-          :limit="1"
-        />
+        <ArtUploadImage v-model="form.avatarUrl" title="上传头像" :size="104" :limit="1" />
       </div>
       <div class="hr-profile-page__summary-copy">
         <span>EMPLOYEE PROFILE</span>
@@ -553,10 +547,9 @@
     type EmployeeProfileForm
   } from './modules/employee-profile-model'
   import { fetchEmployeeProfile, fetchPositionOptions, saveEmployeeProfile } from '@hr/api'
-  import { fetchGetEnableOrganizationTree, fetchGetEnableTenantList } from '@/api/system-manage'
+  import { fetchGetEnableOrganizationTree } from '@/api/system-manage'
   import { linkUserToEmployee } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import {
     canEditField,
@@ -588,11 +581,9 @@
   const route = useRoute()
   const router = useRouter()
   const userStore = useUserStore()
-  const tenantScopeStore = useTenantScopeStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const savePermission = computed(() => (route.params.id ? 'Hr:Employee:Edit' : 'Hr:Employee:Add'))
   const basicFormRef = ref<FormExpose>()
-  const tenantFormOptions = ref<FormItemOption[]>([])
   const organizationFormOptions = ref<FormItemOption[]>([])
   const positionOptions = ref<Api.Hr.PositionOption[]>([])
   const historyValidationErrors = reactive<Record<string, string>>({})
@@ -627,13 +618,9 @@
     error: null
   })
 
-  const initialTenantId = () =>
-    isPlatformSuper.value
-      ? (tenantScopeStore.effectiveTenantId ?? undefined)
-      : getUserInfo.value.tenantId
-  const form = reactive<EmployeeProfileForm>(createEmployeeProfile(initialTenantId()))
-  const employeeNumber = useDocumentNumberRule('hr.employee', () => form.tenantId)
-  const contractNumber = useDocumentNumberRule('hr.employee_contract', () => form.tenantId)
+  const form = reactive<EmployeeProfileForm>(createEmployeeProfile())
+  const employeeNumber = useDocumentNumberRule('hr.employee')
+  const contractNumber = useDocumentNumberRule('hr.employee_contract')
   const fieldAccessFallback = computed<Api.Common.FieldAccessLevel>(() =>
     isEdit.value ? 'hidden' : 'edit'
   )
@@ -787,34 +774,16 @@
     })
 
   const loadOrganizationOptions = async (): Promise<void> => {
-    if (!form.tenantId) {
-      organizationFormOptions.value = []
-      return
-    }
-    const response = await fetchGetEnableOrganizationTree({ tenantId: form.tenantId })
+    const response = await fetchGetEnableOrganizationTree()
     organizationFormOptions.value = mapOrganizationOptions(response.data ?? [])
   }
 
   const loadPositionOptions = async (): Promise<void> => {
-    if (!form.tenantId) {
-      positionOptions.value = []
-      return
-    }
-    const response = await fetchPositionOptions({ tenantId: form.tenantId })
+    const response = await fetchPositionOptions()
     positionOptions.value = response.data ?? []
   }
 
-  const handleTenantChange = (): void => {
-    form.organizationId = null
-    form.positionId = null
-    void loadOrganizationOptions()
-    void loadPositionOptions()
-  }
-
   const basicRules = computed<FormRules<EmployeeProfileForm>>(() => ({
-    tenantId: isPlatformSuper.value
-      ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-      : [],
     organizationId: [{ required: true, message: '请选择所属组织', trigger: 'change' }],
     positionId: [{ required: true, message: '请选择工作岗位', trigger: 'change' }],
     employeeNo: [
@@ -890,32 +859,18 @@
     const items: FormItem[] = [
       { label: '组织与任职', key: 'organizationSection', type: 'divider', span: 24 },
       {
-        label: '所属租户',
-        key: 'tenantId',
-        type: 'select',
-        span: 24,
-        hidden: !isPlatformSuper.value,
-        options: tenantFormOptions.value,
-        props: {
-          filterable: true,
-          disabled: isEdit.value,
-          placeholder: '请选择所属租户',
-          onChange: handleTenantChange
-        }
-      },
-      {
         label: '所属组织',
         key: 'organizationId',
         type: 'treeSelect',
         span: isDesktop.value ? 16 : 24,
         options: organizationFormOptions.value,
         props: {
-          disabled: !form.tenantId || isEdit.value,
+          disabled: isEdit.value,
           clearable: true,
           checkStrictly: true,
           defaultExpandAll: true,
           filterable: true,
-          placeholder: form.tenantId ? '请选择所属组织' : '请先选择租户',
+          placeholder: '请选择所属组织',
           onChange: () => {
             form.positionId = null
           }
@@ -947,7 +902,7 @@
           filterable: true,
           clearable: true,
           disabled: isEdit.value,
-          placeholder: form.tenantId ? '请选择工作岗位' : '请先选择租户'
+          placeholder: '请选择工作岗位'
         },
         description: isEdit.value
           ? '岗位变更请通过人事异动办理；原任职将自动保留为历史。'
@@ -1105,17 +1060,12 @@
   }
 
   const replaceProfile = (profile: EmployeeProfile): void => {
-    Object.assign(form, createEmployeeProfile(initialTenantId()), structuredClone(profile))
+    Object.assign(form, createEmployeeProfile(), structuredClone(profile))
   }
 
   const applyUserLinkPrefill = (): void => {
     if (isEdit.value || !sourceUserId.value) return
 
-    const requestedTenantId = queryValue('tenantId')
-    const currentTenantId = getUserInfo.value.tenantId || ''
-    if (requestedTenantId && (isPlatformSuper.value || requestedTenantId === currentTenantId)) {
-      form.tenantId = requestedTenantId
-    }
     const requestedOrganizationId = queryValue('organizationId')
     if (requestedOrganizationId) form.organizationId = requestedOrganizationId
     const requestedEmail = queryValue('email')
@@ -1127,13 +1077,6 @@
     page.error = null
     try {
       await ensureDictionaries()
-      if (isPlatformSuper.value) {
-        const response = await fetchGetEnableTenantList()
-        tenantFormOptions.value = (response.data ?? []).map((tenant) => ({
-          label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-          value: tenant.id
-        }))
-      }
       if (isEdit.value) {
         const profile = await fetchEmployeeProfile(String(route.params.id))
         if (!profile) throw new Error('员工档案不存在，或当前账号无权查看')
@@ -1362,8 +1305,7 @@
     return normalizeEmployeePayload(toRaw(form), {
       contactDetailsEditable: canEditContactDetails.value,
       identityDetailsEditable: canEditIdentityDetails.value,
-      careerRecordsEditable: canEditCareerRecords.value,
-      tenantId: initialTenantId()
+      careerRecordsEditable: canEditCareerRecords.value
     })
   }
 
@@ -1402,11 +1344,9 @@
       const employeeId = await saveEmployeeProfile(payload)
       if (sourceUserId.value) {
         try {
-          if (!form.tenantId) throw new Error('员工档案缺少租户信息')
           await linkUserToEmployee({
             userId: sourceUserId.value,
-            employeeId,
-            tenantId: form.tenantId
+            employeeId
           })
           ElMessage.success('员工档案已保存，并已关联登录账号')
           returnToSource(employeeId, 'success')

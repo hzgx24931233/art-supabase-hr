@@ -6,16 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchOrganizationDesignOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchOrganizationDesignOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.OrganizationDesignOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_organization_design_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_organization_design_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -37,8 +30,7 @@ export async function fetchOrganizationDesignRecords<
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_scenario_id: params.scenarioId || null,
-          p_tenant_id: params.tenantId || null
+          p_scenario_id: params.scenarioId || null
         }),
         options
       ),
@@ -52,14 +44,12 @@ export async function fetchOrganizationDesignRecords<
 }
 
 export async function fetchOrganizationDesignOptions(
-  kind: 'organization' | 'employee' | 'scenario',
-  tenantId?: string
+  kind: 'organization' | 'employee' | 'scenario'
 ) {
   return await responseHandle<Api.Hr.OrganizationDesignReference[]>(
     () =>
       supabase.rpc('hr_list_organization_design_options_secure', {
-        p_kind: kind,
-        p_tenant_id: tenantId || null
+        p_kind: kind
       }),
     { showErrorMessage: true }
   )

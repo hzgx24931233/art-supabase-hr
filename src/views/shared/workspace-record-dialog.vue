@@ -87,7 +87,7 @@
   const dialogRef = ref<ArtDialogExpose<DialogOpenData>>()
   const formRef = ref<ArtFormExpose>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const currentTab = shallowRef<HrWorkspaceTab>()
   const currentWorkspace = shallowRef<HrWorkspaceDefinition>()
   const isEditing = ref(false)
@@ -139,11 +139,11 @@
   const fetchFieldOptions = async (field: HrWorkspaceField): Promise<Record<string, unknown>[]> => {
     const key = String(field.key)
     if (key.toLowerCase().includes('positionid')) {
-      const result = await fetchPositionOptions({ tenantId: getUserInfo.value.tenantId })
+      const result = await fetchPositionOptions()
       return (result.data ?? []).map((item) => ({ ...item }))
     }
     if (key.toLowerCase().includes('organizationid')) {
-      const result = await fetchEmployeeOrganizationTree({ tenantId: getUserInfo.value.tenantId })
+      const result = await fetchEmployeeOrganizationTree()
       return organizationTreeUtils.treeToList(result.data ?? [])
     }
     if (!field.optionEntity) return []
@@ -193,7 +193,6 @@
 
   const fetchEmployeeUserOptions = async (): Promise<ArtUserSelectOption[]> => {
     const result = await fetchEmployeeSelectorList({
-      tenantId: getUserInfo.value.tenantId,
       from: 0,
       to: 999
     })

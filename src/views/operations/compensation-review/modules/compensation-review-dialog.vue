@@ -58,8 +58,6 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
-  import { useUserStore } from '@/store/modules/user'
   import { fetchCompensationReviewOptions, saveCompensationReviewRecord } from '@hr/api'
   import type { DialogType } from '@/types'
 
@@ -75,7 +73,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     cycleId?: string
     cycleCode: string
     cycleName: string
@@ -115,18 +112,14 @@
   }
 
   const emit = defineEmits<{ success: [entity: Entity, type: DialogType] }>()
-  const userStore = useUserStore()
-  const { getUserInfo, isPlatformSuper } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<ArtFormExpose>()
   const entity = ref<Entity>('cycle')
   const dialogType = ref<DialogType>('add')
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const organizationOptions = ref<Array<{ label: string; value: string }>>([])
 
   const createInitialModel = (): FormModel => ({
     id: undefined,
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     cycleId: undefined,
     cycleCode: `MERIT-${dayjs().year()}`,
     cycleName: `${dayjs().year()} 年度调薪复核`,
@@ -162,7 +155,7 @@
   const formModel = reactive<FormModel>(createInitialModel())
 
   const buildRecord = (): RecordItem => {
-    const common = { id: formModel.id, tenantId: formModel.tenantId }
+    const common = { id: formModel.id }
     if (entity.value === 'cycle') {
       return {
         ...common,
@@ -237,22 +230,7 @@
     }
   })
 
-  const tenantItems = (): FormItem[] =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            span: 24,
-            options: tenantOptions.value,
-            props: { filterable: true, placeholder: '请选择所属租户' }
-          }
-        ]
-      : []
-
   const cycleItems = computed<FormItem[]>(() => [
-    ...tenantItems(),
     { label: '周期识别', key: 'identity', type: 'divider', span: 24 },
     {
       label: '周期编码',
@@ -427,7 +405,6 @@
   const rules = computed<FormRules>(() => {
     if (entity.value === 'cycle') {
       return {
-        tenantId: isPlatformSuper.value ? [required('请选择所属租户', 'change')] : [],
         cycleCode: [required('请输入周期编码')],
         cycleName: [required('请输入周期名称')],
         reviewYear: [required('请输入复核年度', 'change')],
@@ -477,7 +454,7 @@
   }
 
   const loadOptions = async (): Promise<void> => {
-    const response = await fetchCompensationReviewOptions('organization', formModel.tenantId)
+    const response = await fetchCompensationReviewOptions('organization')
     organizationOptions.value = (response.data ?? []).map((item) => ({
       label: `${item.name ?? '--'}${item.code ? `（${item.code}）` : ''}`,
       value: item.id
@@ -516,7 +493,6 @@
     organizationOptions.value = []
     if (payload.cycle) {
       formModel.cycleId = payload.cycle.id
-      formModel.tenantId = payload.cycle.tenantId
       formModel.cycleStatus = payload.cycle.status
       formModel.currencyCode = payload.cycle.currencyCode
     }
@@ -525,20 +501,13 @@
     formRef.value?.clearValidate()
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${entity.value === 'cycle' ? '调薪周期' : entity.value === 'budget' ? '组织预算' : '员工调薪建议'}`,
-      subtitle: '所有金额、状态与生效结果均在服务端按租户和权限校验',
+      subtitle: '所有金额、状态与生效结果均在服务端按权限校验',
       confirmText:
         payload.type === 'add' ? '创建记录' : formModel.exclude ? '确认排除' : '保存更改',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const response = await fetchGetEnableTenantList()
-            tenantOptions.value = (response.data ?? []).map((tenant) => ({
-              label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-              value: tenant.id!
-            }))
-          }
           await loadOptions()
         } finally {
           api.setLoading(false)

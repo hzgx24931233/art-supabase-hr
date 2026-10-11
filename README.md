@@ -18,7 +18,7 @@
 
 程管家 HR 是程管家的人力资源业务应用，围绕组织与岗位、员工档案、人才获取、人才发展和日常人事运营建立统一的人力数据与流程体系。
 
-本仓只维护 HR 页面、业务 API、领域类型与适配代码。认证、租户、权限、菜单、布局、路由、公共组件、Store 和 Supabase 公共客户端由 [`art-supabase-pro`](https://gitee.com/hz24931233/art-supabase-pro) 统一提供。
+本仓只维护 HR 页面、业务 API、领域类型与适配代码。认证、权限、菜单、布局、路由、公共组件、Store 和 Supabase 公共客户端由 [`art-supabase-pro`](https://gitee.com/hz24931233/art-supabase-pro) 统一提供。
 
 ![员工花名册](screenshots/employee-roster.png)
 
@@ -67,7 +67,7 @@ pnpm preview
 
 ## 与主仓协作
 
-HR 业务修改在本仓提交并推送，随后在主仓更新 `modules/art-supabase-hr` 子模块指针。公共能力只在主仓维护；跨模块读取必须经过租户隔离、字段最小化的 API/RPC 契约，HR 敏感字段不向无关业务暴露。
+HR 业务修改在本仓提交并推送，随后在主仓更新 `modules/art-supabase-hr` 子模块指针。公共能力只在主仓维护；跨模块读取必须经过字段最小化的 API/RPC 契约，HR 敏感字段不向无关业务暴露。
 
 ## 安全原则
 

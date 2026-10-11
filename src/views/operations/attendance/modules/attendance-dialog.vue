@@ -23,7 +23,6 @@
           <ArtEmployeeSelect
             v-model="form.model.employeeId"
             v-model:selected-data="employeeSelection"
-            :tenant-id="form.model.tenantId"
             placeholder="请选择排班或考勤员工"
           />
         </template>
@@ -43,7 +42,6 @@
   } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { fetchTimeAttendanceOptions, saveTimeAttendanceRecord } from '@hr/api'
   import type { DialogType } from '@/types'
@@ -53,7 +51,6 @@
 
   interface FormModel {
     id?: string
-    tenantId?: string
     shiftCode: string
     shiftName: string
     shiftType: string
@@ -99,17 +96,15 @@
 
   const emit = defineEmits<{ success: [type: DialogType, entity: Entity] }>()
   const userStore = useUserStore()
-  const { getDictMap, getUserInfo, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const entity = ref<Entity>('record')
-  const tenantOptions = ref<FormItemOption[]>([])
   const shiftOptions = shallowRef<Api.Hr.TimeAttendanceReference[]>([])
   const recordOptions = shallowRef<Api.Hr.TimeAttendanceReference[]>([])
   const employeeSelection = ref<EmployeeIntegrationItem[]>([])
 
   const createInitialModel = (): FormModel => ({
-    tenantId: isPlatformSuper.value ? undefined : getUserInfo.value.tenantId,
     shiftCode: '',
     shiftName: '',
     shiftType: 'regular',
@@ -155,26 +150,7 @@
     }))
   )
 
-  const tenantItem = computed<FormItem[]>(() =>
-    isPlatformSuper.value
-      ? [
-          {
-            label: '所属租户',
-            key: 'tenantId',
-            type: 'select',
-            options: tenantOptions.value,
-            props: {
-              filterable: true,
-              placeholder: '请选择所属租户',
-              onChange: handleTenantChange
-            }
-          }
-        ]
-      : []
-  )
-
   const shiftItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '班次识别', key: 'shiftIdentity', type: 'divider', span: 24 },
     { label: '班次编码', key: 'shiftCode', type: 'input', props: { maxlength: 40 } },
     { label: '班次名称', key: 'shiftName', type: 'input', props: { maxlength: 80 } },
@@ -229,7 +205,6 @@
   ])
 
   const assignmentItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '排班对象', key: 'assignmentScope', type: 'divider', span: 24 },
     { label: '员工', key: 'employeeId', type: 'input' },
     {
@@ -261,7 +236,6 @@
   ])
 
   const recordItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '日考勤事实', key: 'recordScope', type: 'divider', span: 24 },
     { label: '员工', key: 'employeeId', type: 'input' },
     {
@@ -321,7 +295,6 @@
   ])
 
   const correctionItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '修正对象', key: 'correctionScope', type: 'divider', span: 24 },
     {
       label: '日考勤记录',
@@ -367,7 +340,6 @@
   ])
 
   const periodItems = computed<FormItem[]>(() => [
-    ...tenantItem.value,
     { label: '月度考勤期间', key: 'periodScope', type: 'divider', span: 24 },
     {
       label: '期间月份',
@@ -463,27 +435,12 @@
   })
 
   const loadReferences = async (): Promise<void> => {
-    if (isPlatformSuper.value && !formModel.tenantId) {
-      shiftOptions.value = []
-      recordOptions.value = []
-      return
-    }
     const [shifts, records] = await Promise.all([
-      fetchTimeAttendanceOptions('shift', formModel.tenantId),
-      fetchTimeAttendanceOptions('record', formModel.tenantId)
+      fetchTimeAttendanceOptions('shift'),
+      fetchTimeAttendanceOptions('record')
     ])
     shiftOptions.value = shifts.data ?? []
     recordOptions.value = records.data ?? []
-  }
-
-  const handleTenantChange = async (): Promise<void> => {
-    Object.assign(formModel, {
-      employeeId: undefined,
-      shiftId: undefined,
-      attendanceRecordId: undefined
-    })
-    employeeSelection.value = []
-    await loadReferences()
   }
 
   const toEmployeeSelection = (
@@ -503,7 +460,6 @@
     if (entity.value === 'shift')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         shiftCode: formModel.shiftCode,
         shiftName: formModel.shiftName,
         shiftType: formModel.shiftType,
@@ -520,7 +476,6 @@
     if (entity.value === 'assignment')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         employeeId: formModel.employeeId!,
         shiftId: formModel.shiftId!,
         workDate: formModel.workDate,
@@ -530,7 +485,6 @@
     if (entity.value === 'record')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         employeeId: formModel.employeeId!,
         shiftId: formModel.shiftId,
         workDate: formModel.workDate,
@@ -552,7 +506,6 @@
     if (entity.value === 'correction')
       return {
         id: formModel.id,
-        tenantId: formModel.tenantId,
         attendanceRecordId: formModel.attendanceRecordId!,
         requestedClockInAt: formModel.requestedClockInAt,
         requestedClockOutAt: formModel.requestedClockOutAt,
@@ -562,7 +515,6 @@
       }
     return {
       id: formModel.id,
-      tenantId: formModel.tenantId,
       periodMonth: formModel.periodMonth,
       status: 'open',
       recordCount: 0,
@@ -622,13 +574,6 @@
       onOpen: async (_data, api) => {
         api.setLoading(true)
         try {
-          if (isPlatformSuper.value && !tenantOptions.value.length) {
-            const tenants = await fetchGetEnableTenantList()
-            tenantOptions.value = (tenants.data ?? []).map((tenant) => ({
-              label: tenant.tenantName,
-              value: tenant.id
-            }))
-          }
           await loadReferences()
           await nextTick()
           formRef.value?.clearValidate()

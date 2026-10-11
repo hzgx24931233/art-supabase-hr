@@ -6,13 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchBenefitsOverview(tenantId?: string, options?: ApiRequestOptions) {
+export async function fetchBenefitsOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.BenefitOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_benefits_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_benefits_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -32,8 +28,7 @@ export async function fetchBenefitRecords<TRecord extends Api.Hr.BenefitRecord>(
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_plan_type: params.planType || null,
-          p_tenant_id: params.tenantId || null
+          p_plan_type: params.planType || null
         }),
         options
       ),
@@ -44,7 +39,6 @@ export async function fetchBenefitRecords<TRecord extends Api.Hr.BenefitRecord>(
 
 export async function fetchBenefitPlanOptions(
   planId?: string,
-  tenantId?: string,
   activeOnly = true,
   options?: ApiRequestOptions
 ) {
@@ -53,7 +47,6 @@ export async function fetchBenefitPlanOptions(
       withRequestOptions(
         supabase.rpc('hr_benefit_plan_options_secure', {
           p_plan_id: planId || null,
-          p_tenant_id: tenantId || null,
           p_active_only: activeOnly
         }),
         options
@@ -150,17 +143,12 @@ export async function transitionBenefitRecord(
   )
 }
 
-export async function fetchBenefitPayrollInputs(
-  payrollMonth: string,
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchBenefitPayrollInputs(payrollMonth: string, options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.BenefitPayrollInput[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_benefit_payroll_inputs_secure', {
-          p_payroll_month: payrollMonth,
-          p_tenant_id: tenantId || null
+          p_payroll_month: payrollMonth
         }),
         options
       ),

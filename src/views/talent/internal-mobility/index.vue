@@ -168,9 +168,7 @@
     type BusinessWorkspaceTag
   } from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
   import {
@@ -224,8 +222,6 @@
       icon: 'ri:user-follow-line'
     }
   ]
-  const userStore = useUserStore()
-  const { isPlatformSuper } = storeToRefs(userStore)
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('opportunity')
   const activeTab = computed(
@@ -236,9 +232,8 @@
   const dialogRef = ref<DialogExpose>()
   const tableTotal = ref(0)
   const focusedOpportunity = ref<Api.Hr.InternalMobilityOpportunity | null>(null)
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const tableState = reactive<{ searchQuery: Api.Hr.InternalMobilitySearchParams }>({
-    searchQuery: { keyword: '', status: '', tenantId: '' }
+    searchQuery: { keyword: '', status: '' }
   })
   const overview = reactive<Api.Hr.InternalMobilityOverview>({
     openOpportunityCount: 0,
@@ -374,14 +369,6 @@
   const applicationStatusOptions = useDictionaryOptions('hrMobilityApplicationStatus')
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: { clearable: true, filterable: true, placeholder: '全部租户' }
-      })
     items.push(
       {
         label: '状态',
@@ -789,7 +776,7 @@
     tableTotal.value = response.total ?? 0
   }
   const refreshOverview = async () => {
-    const response = await fetchInternalMobilityOverview(tableState.searchQuery.tenantId)
+    const response = await fetchInternalMobilityOverview()
     if (response.data) Object.assign(overview, response.data)
   }
   const refreshWorkspace = async () => {
@@ -979,13 +966,6 @@
     }
   }
   onMounted(async () => {
-    if (isPlatformSuper.value) {
-      const response = await fetchGetEnableTenantList()
-      tenantOptions.value = (response.data ?? []).map((tenant) => ({
-        label: `${tenant.tenantName}（${tenant.tenantCode}）`,
-        value: tenant.id!
-      }))
-    }
     await refreshOverview()
   })
 </script>

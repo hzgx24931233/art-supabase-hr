@@ -97,7 +97,6 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import type { ColumnOption, DialogType } from '@/types'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
   import {
     deleteLifecycleRecord,
     fetchLifecycleOptions,
@@ -167,18 +166,17 @@
   ]
 
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { getDictMap } = storeToRefs(userStore)
   const { confirmAction, promptText } = useArtFeedback()
   const activeEntity = ref<Entity>('case')
   const activeTab = computed(() => tabs.find((tab) => tab.value === activeEntity.value) ?? tabs[0]!)
   const navigationItems: HrEntityNavigationItem[] = tabs
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const caseOptions = shallowRef<Api.Hr.LifecycleReference[]>([])
   const templateOptions = shallowRef<Api.Hr.LifecycleReference[]>([])
   const tableState = reactive<{ searchQuery: Api.Hr.LifecycleSearchParams }>({
-    searchQuery: { tenantId: '', status: '', keyword: '', caseId: '', templateId: '' }
+    searchQuery: { status: '', keyword: '', caseId: '', templateId: '' }
   })
   const overview = reactive<Api.Hr.LifecycleOverview>({
     activeCaseCount: 0,
@@ -262,19 +260,6 @@
     }))
   const searchItems = computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = []
-    if (isPlatformSuper.value)
-      items.push({
-        label: '租户',
-        key: 'tenantId',
-        type: 'select',
-        options: tenantOptions.value,
-        props: {
-          clearable: true,
-          filterable: true,
-          placeholder: '全部租户',
-          onChange: handleTenantFilterChange
-        }
-      })
     if (activeEntity.value === 'task')
       items.push({
         label: '事项',
@@ -800,28 +785,23 @@
     return fetchLifecycleRecords(activeEntity.value, { ...params, from, to })
   }
   const loadReferences = async () => {
-    const tenantId = tableState.searchQuery.tenantId
     const [cases, templates] = await Promise.all([
-      fetchLifecycleOptions('case', tenantId),
-      fetchLifecycleOptions('template', tenantId)
+      fetchLifecycleOptions('case'),
+      fetchLifecycleOptions('template')
     ])
     caseOptions.value = cases.data ?? []
     templateOptions.value = templates.data ?? []
   }
   const refreshOverview = async () => {
-    const response = await fetchLifecycleOverview(tableState.searchQuery.tenantId)
+    const response = await fetchLifecycleOverview()
     if (response.data) Object.assign(overview, response.data)
-  }
-  const handleTenantFilterChange = async () => {
-    Object.assign(tableState.searchQuery, { caseId: '', templateId: '' })
-    await Promise.all([loadReferences(), refreshOverview()])
   }
   const openDialog = (entityValue: Entity, row?: RecordItem, preset?: Record<string, unknown>) =>
     void dialogRef.value?.handleOpen({
       entity: entityValue,
       type: row ? 'edit' : 'add',
       editData: row,
-      preset: { tenantId: tableState.searchQuery.tenantId || undefined, ...preset }
+      preset: { ...preset }
     })
   const handleSaveSuccess = (type: DialogType) => {
     void (type === 'add'
@@ -964,12 +944,6 @@
   }
 
   onMounted(async () => {
-    if (isPlatformSuper.value) {
-      const tenants = await fetchGetEnableTenantList()
-      tenantOptions.value = (tenants.data ?? [])
-        .filter((tenant): tenant is typeof tenant & { id: string } => Boolean(tenant.id))
-        .map((tenant) => ({ label: tenant.tenantName, value: tenant.id }))
-    }
     await Promise.all([loadReferences(), refreshOverview()])
   })
 </script>

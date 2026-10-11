@@ -6,16 +6,9 @@ import type { ApiRequestOptions } from '@/types/api/request'
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
-export async function fetchWorkforcePlanningOverview(
-  tenantId?: string,
-  options?: ApiRequestOptions
-) {
+export async function fetchWorkforcePlanningOverview(options?: ApiRequestOptions) {
   return await responseHandle<Api.Hr.WorkforcePlanningOverview>(
-    () =>
-      withRequestOptions(
-        supabase.rpc('hr_workforce_overview_secure', { p_tenant_id: tenantId || null }),
-        options
-      ),
+    () => withRequestOptions(supabase.rpc('hr_workforce_overview_secure'), options),
     { showErrorMessage: true }
   )
 }
@@ -35,8 +28,7 @@ export async function fetchWorkforcePlanningRecords<TRecord extends Api.Hr.Workf
           p_to: Math.max(params.to ?? from + 19, from),
           p_keyword: normalizeNullableText(params.keyword),
           p_status: params.status || null,
-          p_plan_id: params.planId || null,
-          p_tenant_id: params.tenantId || null
+          p_plan_id: params.planId || null
         }),
         options
       ),
@@ -47,15 +39,13 @@ export async function fetchWorkforcePlanningRecords<TRecord extends Api.Hr.Workf
 
 export async function fetchWorkforcePlanningOptions(
   kind: Api.Hr.WorkforcePlanningOptionKind,
-  tenantId?: string,
   options?: ApiRequestOptions
 ) {
   return await responseHandle<Api.Hr.WorkforcePlanningReference[]>(
     () =>
       withRequestOptions(
         supabase.rpc('hr_list_workforce_options_secure', {
-          p_kind: kind,
-          p_tenant_id: tenantId || null
+          p_kind: kind
         }),
         options
       ),
@@ -67,7 +57,6 @@ const normalizePayload = (record: Api.Hr.WorkforcePlanningRecord) =>
   keysToSnakeDeep(
     omit(record, [
       'id',
-      'tenant',
       'owner',
       'plan',
       'organization',
