@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="md">
+  <ArtDialog ref="dialogRef" size="md" confirm-on-close>
     <div class="benefit-option-dialog">
       <ArtEntitySummary
         icon="ri:stack-line"

@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" confirm-on-close>
     <div class="org-design-dialog">
       <ArtEntitySummary
         :icon="entity === 'scenario' ? 'ri:git-branch-line' : 'ri:node-tree'"

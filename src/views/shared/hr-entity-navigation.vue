@@ -21,7 +21,6 @@
         <strong>{{ item.label }}</strong>
         <small>{{ item.description }}</small>
       </span>
-      <ArtSvgIcon class="hr-entity-navigation__arrow" icon="ri:arrow-right-s-line" />
     </button>
   </nav>
 </template>

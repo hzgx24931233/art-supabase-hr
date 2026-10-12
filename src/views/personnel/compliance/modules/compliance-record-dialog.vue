@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" confirm-on-close>
     <div class="compliance-record-dialog">
       <div class="compliance-record-dialog__context" role="note">
         <ArtSvgIcon :icon="context.icon" />

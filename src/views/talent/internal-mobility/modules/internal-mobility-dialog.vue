@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" confirm-on-close>
     <div class="mobility-dialog">
       <ArtEntitySummary
         :icon="entity === 'opportunity' ? 'ri:compass-3-line' : 'ri:user-follow-line'"

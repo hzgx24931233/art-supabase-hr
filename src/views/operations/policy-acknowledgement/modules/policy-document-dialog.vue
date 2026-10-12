@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" confirm-on-close>
     <div class="policy-dialog">
       <ArtEntitySummary
         icon="ri:file-shield-2-line"

@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="md">
+  <ArtDialog ref="dialogRef" size="md" confirm-on-close>
     <div class="experience-question-dialog">
       <div class="experience-question-dialog__survey">
         <span><ArtSvgIcon icon="ri:questionnaire-line" /></span>

@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="md">
+  <ArtDialog ref="dialogRef" size="md" confirm-on-close>
     <div class="service-assignment-dialog">
       <div class="service-assignment-dialog__case">
         <span aria-hidden="true"><ArtSvgIcon icon="ri:user-settings-line" /></span>

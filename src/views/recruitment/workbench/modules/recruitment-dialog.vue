@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef">
+  <ArtDialog ref="dialogRef" confirm-on-close>
     <div class="recruitment-dialog">
       <ArtEntitySummary
         :icon="context.icon"

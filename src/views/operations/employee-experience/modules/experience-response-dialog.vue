@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" confirm-on-close>
     <div v-if="detail" class="experience-response-dialog">
       <section class="experience-response-dialog__hero" aria-labelledby="experience-response-title">
         <div>

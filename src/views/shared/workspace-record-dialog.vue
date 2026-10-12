@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef">
+  <ArtDialog ref="dialogRef" confirm-on-close>
     <div class="hr-record-dialog">
       <section class="hr-record-dialog__intro">
         <div class="hr-record-dialog__icon" aria-hidden="true">

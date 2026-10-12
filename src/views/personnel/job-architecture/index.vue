@@ -107,17 +107,8 @@
 
   const tabs: ArchitectureTab[] = [
     {
-      entity: 'profile',
-      label: '标准职务',
-      description: '跨组织复用的工作分类',
-      icon: 'ri:id-card-line',
-      addPermission: 'Hr:JobProfile:Add',
-      editPermission: 'Hr:JobProfile:Edit',
-      deletePermission: 'Hr:JobProfile:Delete'
-    },
-    {
       entity: 'family',
-      label: '职族',
+      label: '1.职族',
       description: '相近职务的专业序列',
       icon: 'ri:git-branch-line',
       addPermission: 'Hr:JobFamily:Add',
@@ -125,8 +116,17 @@
       deletePermission: 'Hr:JobFamily:Delete'
     },
     {
+      entity: 'profile',
+      label: '2.标准职务',
+      description: '跨组织复用的工作分类',
+      icon: 'ri:id-card-line',
+      addPermission: 'Hr:JobProfile:Add',
+      editPermission: 'Hr:JobProfile:Edit',
+      deletePermission: 'Hr:JobProfile:Delete'
+    },
+    {
       entity: 'grade',
-      label: '职级',
+      label: '3.职级',
       description: '能力与薪酬层级基准',
       icon: 'ri:bar-chart-grouped-line',
       addPermission: 'Hr:Grade:Add',
@@ -141,7 +141,7 @@
   const { confirmAction } = useArtFeedback()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
-  const activeEntity = ref<Entity>('profile')
+  const activeEntity = ref<Entity>('family')
   const activeTab = computed(() => tabs.find((tab) => tab.entity === activeEntity.value) ?? tabs[0])
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<JobArchitectureDialogExpose>()

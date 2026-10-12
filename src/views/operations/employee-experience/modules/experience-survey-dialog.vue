@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" confirm-on-close>
     <div class="experience-survey-dialog">
       <ArtEntitySummary
         icon="ri:survey-line"

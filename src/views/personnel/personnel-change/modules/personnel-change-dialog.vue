@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef">
+  <ArtDialog ref="dialogRef" confirm-on-close>
     <div class="personnel-change-dialog">
       <ArtForm
         ref="formRef"
