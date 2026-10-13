@@ -18,7 +18,7 @@
         <ArtSvgIcon :icon="item.icon" />
       </span>
       <span class="hr-entity-navigation__content">
-        <strong>第{{index+1 }}步->{{ item.label }}</strong>
+        <strong>第{{ index + 1 }}步->{{ item.label }}</strong>
         <small>{{ item.description }}</small>
       </span>
     </button>
