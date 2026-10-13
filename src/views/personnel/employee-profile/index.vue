@@ -7,506 +7,493 @@
     full-height
     @retry="initializePage"
   >
-    <ArtPageHeader
-      :title="isEdit ? '编辑员工档案' : '新增员工档案'"
-      :subtitle="pageSubtitle"
-      show-back
-      @back="goBack"
-    >
-      <template #actions>
-        <ElTag v-if="form.employeeNo" type="primary" effect="plain" round>
-          {{ form.employeeNo }}
-        </ElTag>
-        <ArtDictDisplay
-          v-if="isEdit"
-          dict-code="hrEmploymentStatus"
-          :value="form.employmentStatus"
-          display="tag"
-        />
-      </template>
-    </ArtPageHeader>
+    <div class="hr-profile-page__hero">
+      <ArtPageHeader
+        :title="isEdit ? '编辑员工档案' : '新增员工档案'"
+        :subtitle="pageSubtitle"
+        show-back
+        @back="goBack"
+      >
+        <template #actions>
+          <ElTag v-if="form.employeeNo" type="primary" effect="plain" round>
+            {{ form.employeeNo }}
+          </ElTag>
+          <ArtDictDisplay
+            v-if="isEdit"
+            dict-code="hrEmploymentStatus"
+            :value="form.employmentStatus"
+            display="tag"
+          />
+        </template>
+      </ArtPageHeader>
 
-    <section class="hr-profile-page__summary art-card-xs">
-      <div class="hr-profile-page__avatar">
-        <ArtUploadImage v-model="form.avatarUrl" title="上传头像" :size="104" :limit="1" />
-      </div>
-      <div class="hr-profile-page__summary-copy">
-        <span>EMPLOYEE PROFILE</span>
-        <strong>{{ form.employeeName || '待录入员工姓名' }}</strong>
-        <p>{{ form.jobTitle || '维护员工身份、任职、合同与成长履历' }}</p>
-      </div>
-      <div class="hr-profile-page__completion">
-        <small>档案完整度</small>
-        <strong>{{ profileCompletion }}%</strong>
-        <ElProgress :percentage="profileCompletion" :show-text="false" />
-      </div>
-    </section>
+      <section class="hr-profile-page__summary art-card-xs">
+        <div class="hr-profile-page__avatar">
+          <ArtUploadImage v-model="form.avatarUrl" title="上传头像" :size="104" :limit="1" />
+        </div>
+        <div class="hr-profile-page__summary-copy">
+          <span>EMPLOYEE PROFILE</span>
+          <strong>{{ form.employeeName || '待录入员工姓名' }}</strong>
+          <p>{{ form.jobTitle || '维护员工身份、任职、合同与成长履历' }}</p>
+        </div>
+        <div class="hr-profile-page__completion">
+          <small>档案完整度</small>
+          <strong>{{ profileCompletion }}%</strong>
+          <ElProgress :percentage="profileCompletion" :show-text="false" />
+        </div>
+      </section>
+    </div>
 
-    <ElAlert
-      v-if="userLinkNotice"
-      class="hr-profile-page__access-notice"
-      type="success"
-      :closable="false"
-      show-icon
-      :title="userLinkNotice"
-    />
-
-    <ElAlert
-      v-if="accessNotice"
-      class="hr-profile-page__access-notice"
-      type="info"
-      :closable="false"
-      show-icon
-      :title="accessNotice"
-    />
-
-    <ElTabs v-model="page.activeTab" class="hr-profile-page__tabs art-card-xs">
-      <ElTabPane label="基础信息" name="basic">
-        <ArtForm
-          ref="basicFormRef"
-          v-model="form"
-          :items="basicItems"
-          :rules="basicRules"
-          :span="formSpan"
-          :gutter="20"
-          label-width="112px"
-          :show-reset="false"
-          :show-submit="false"
-          :validate-on-rule-change="false"
-        />
-      </ElTabPane>
-
-      <EmployeeContractsTab
-        v-if="canViewCareerRecords && !form.historiesMasked"
-        v-model="form.contracts"
-        :is-readonly="!canEditCareerRecords"
-        :can-view-compensation-details="canViewCompensationDetails"
-        :can-edit-compensation-details="canEditCompensationDetails"
-        :dict="dict"
-        :display-dict="displayDict"
-        :validation-errors="historyValidationErrors"
-        :contract-number-automatic="contractNumber.automatic.value"
-        :contract-number-loading="contractNumber.loading.value"
-        :contract-number-manual-required="contractNumber.manualRequired(false)"
-        :contract-number-description="contractNumber.description.value"
+    <div class="hr-profile-page__content">
+      <ElAlert
+        v-if="userLinkNotice"
+        class="hr-profile-page__access-notice"
+        type="success"
+        :closable="false"
+        show-icon
+        :title="userLinkNotice"
       />
 
-      <ElTabPane v-if="canViewCareerRecords && !form.historiesMasked" name="educations">
-        <template #label
-          >教育背景
-          <span class="hr-profile-page__tab-count">{{ form.educations.length }}</span></template
-        >
-        <HistorySection
-          title="教育背景"
-          description="维护学历、学位、学校与证书信息"
-          add-label="新增教育经历"
-          icon="ri:graduation-cap-line"
-          :count="form.educations.length"
-          :readonly="!canEditCareerRecords"
-          @add="form.educations.push(createEducation())"
-        >
-          <HistoryCard
-            v-for="(item, index) in form.educations"
-            :key="item.id || index"
-            :title="item.schoolName || `教育经历 ${index + 1}`"
-            :subtitle="displayDict('hrEducationLevel', item.educationLevel)"
-            :readonly="!canEditCareerRecords"
-            @remove="form.educations.splice(index, 1)"
-          >
-            <ArtForm
-              custom-layout
-              :show-reset="false"
-              :show-submit="false"
-              label-position="top"
-              form-class="hr-profile-page__record-form"
-              :disabled="!canEditCareerRecords"
-            >
-              <ElFormItem
-                label="学校名称"
-                required
-                :error="historyFieldError('educations', index, 'schoolName')"
-                :data-validation-key="historyFieldKey('educations', index, 'schoolName')"
-                ><ElInput v-model="item.schoolName" maxlength="120"
-              /></ElFormItem>
-              <ElFormItem label="专业"
-                ><ElInput v-model="item.majorName" maxlength="100"
-              /></ElFormItem>
-              <ElFormItem
-                label="学历"
-                required
-                :error="historyFieldError('educations', index, 'educationLevel')"
-                :data-validation-key="historyFieldKey('educations', index, 'educationLevel')"
-                ><ElSelect v-model="item.educationLevel"
-                  ><ElOption
-                    v-for="option in dict('hrEducationLevel')"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value" /></ElSelect
-              ></ElFormItem>
-              <ElFormItem label="学位"
-                ><ElSelect v-model="item.degree" clearable
-                  ><ElOption
-                    v-for="option in dict('hrDegree')"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value" /></ElSelect
-              ></ElFormItem>
-              <ElFormItem label="开始日期"
-                ><ElDatePicker v-model="item.startDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem
-                label="结束日期"
-                :error="historyFieldError('educations', index, 'endDate')"
-                :data-validation-key="historyFieldKey('educations', index, 'endDate')"
-                ><ElDatePicker v-model="item.endDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem label="学习形式"
-                ><ElRadioGroup v-model="item.fullTime"
-                  ><ElRadioButton :value="true">全日制</ElRadioButton
-                  ><ElRadioButton :value="false">非全日制</ElRadioButton></ElRadioGroup
-                ></ElFormItem
-              >
-              <ElFormItem label="证书编号"
-                ><ElInput v-model="item.certificateNo" maxlength="80"
-              /></ElFormItem>
-              <ElFormItem label="备注" class="is-wide"
-                ><ElInput
-                  v-model="item.remark"
-                  type="textarea"
-                  :rows="4"
-                  maxlength="300"
-                  show-word-limit
-              /></ElFormItem>
-            </ArtForm>
-          </HistoryCard>
-        </HistorySection>
-      </ElTabPane>
+      <ElAlert
+        v-if="accessNotice"
+        class="hr-profile-page__access-notice"
+        type="info"
+        :closable="false"
+        show-icon
+        :title="accessNotice"
+      />
 
-      <ElTabPane v-if="canViewCareerRecords && !form.historiesMasked" name="workExperiences">
-        <template #label
-          >工作经历
-          <span class="hr-profile-page__tab-count">{{
-            form.workExperiences.length
-          }}</span></template
-        >
-        <HistorySection
-          title="工作经历"
-          description="记录入职前任职公司、岗位职责和证明人"
-          add-label="新增工作经历"
-          icon="ri:briefcase-4-line"
-          :count="form.workExperiences.length"
-          :readonly="!canEditCareerRecords"
-          @add="form.workExperiences.push(createWorkExperience())"
-        >
-          <HistoryCard
-            v-for="(item, index) in form.workExperiences"
-            :key="item.id || index"
-            :title="item.companyName || `工作经历 ${index + 1}`"
-            :subtitle="item.jobTitle"
-            :readonly="!canEditCareerRecords"
-            @remove="form.workExperiences.splice(index, 1)"
-          >
-            <ArtForm
-              custom-layout
-              :show-reset="false"
-              :show-submit="false"
-              label-position="top"
-              form-class="hr-profile-page__record-form"
-              :disabled="!canEditCareerRecords"
-            >
-              <ElFormItem
-                label="公司名称"
-                required
-                :error="historyFieldError('workExperiences', index, 'companyName')"
-                :data-validation-key="historyFieldKey('workExperiences', index, 'companyName')"
-                ><ElInput v-model="item.companyName" maxlength="120"
-              /></ElFormItem>
-              <ElFormItem label="所在部门"
-                ><ElInput v-model="item.departmentName" maxlength="80"
-              /></ElFormItem>
-              <ElFormItem
-                label="工作岗位"
-                required
-                :error="historyFieldError('workExperiences', index, 'jobTitle')"
-                :data-validation-key="historyFieldKey('workExperiences', index, 'jobTitle')"
-                ><ElInput v-model="item.jobTitle" maxlength="80"
-              /></ElFormItem>
-              <ElFormItem
-                label="开始日期"
-                required
-                :error="historyFieldError('workExperiences', index, 'startDate')"
-                :data-validation-key="historyFieldKey('workExperiences', index, 'startDate')"
-                ><ElDatePicker v-model="item.startDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem
-                label="结束日期"
-                :error="historyFieldError('workExperiences', index, 'endDate')"
-                :data-validation-key="historyFieldKey('workExperiences', index, 'endDate')"
-                ><ElDatePicker v-model="item.endDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem v-if="canViewContactDetails" label="证明人"
-                ><ElInput
-                  v-model="item.referenceName"
-                  maxlength="50"
-                  :disabled="!canEditContactDetails"
-              /></ElFormItem>
-              <ElFormItem v-if="canViewContactDetails" label="证明人电话"
-                ><ElInput
-                  v-model="item.referencePhone"
-                  maxlength="20"
-                  :disabled="!canEditContactDetails"
-              /></ElFormItem>
-              <ElFormItem label="离职原因" class="is-wide"
-                ><ElInput
-                  v-model="item.leavingReason"
-                  type="textarea"
-                  :rows="4"
-                  maxlength="150"
-                  show-word-limit
-              /></ElFormItem>
-              <ElFormItem label="主要职责" class="is-wide"
-                ><ElInput
-                  v-model="item.responsibilities"
-                  type="textarea"
-                  :rows="4"
-                  maxlength="500"
-                  show-word-limit
-              /></ElFormItem>
-            </ArtForm>
-          </HistoryCard>
-        </HistorySection>
-      </ElTabPane>
-
-      <ElTabPane v-if="canViewCareerRecords && !form.historiesMasked" name="trainings">
-        <template #label
-          >培训经历
-          <span class="hr-profile-page__tab-count">{{ form.trainings.length }}</span></template
-        >
-        <HistorySection
-          title="培训经历"
-          description="维护培训项目、结果、证书与费用"
-          add-label="新增培训经历"
-          icon="ri:presentation-line"
-          :count="form.trainings.length"
-          :readonly="!canEditCareerRecords"
-          @add="form.trainings.push(createTraining())"
-        >
-          <HistoryCard
-            v-for="(item, index) in form.trainings"
-            :key="item.id || index"
-            :title="item.trainingName || `培训经历 ${index + 1}`"
-            :subtitle="displayDict('hrTrainingResult', item.trainingResult)"
-            :readonly="!canEditCareerRecords"
-            @remove="form.trainings.splice(index, 1)"
-          >
-            <ArtForm
-              custom-layout
-              :show-reset="false"
-              :show-submit="false"
-              label-position="top"
-              form-class="hr-profile-page__record-form"
-              :disabled="!canEditCareerRecords"
-            >
-              <ElFormItem
-                label="培训名称"
-                required
-                :error="historyFieldError('trainings', index, 'trainingName')"
-                :data-validation-key="historyFieldKey('trainings', index, 'trainingName')"
-                ><ElInput v-model="item.trainingName" maxlength="120"
-              /></ElFormItem>
-              <ElFormItem
-                label="培训类型"
-                required
-                :error="historyFieldError('trainings', index, 'trainingType')"
-                :data-validation-key="historyFieldKey('trainings', index, 'trainingType')"
-                ><ElSelect v-model="item.trainingType"
-                  ><ElOption
-                    v-for="option in dict('hrTrainingType')"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value" /></ElSelect
-              ></ElFormItem>
-              <ElFormItem label="培训机构"
-                ><ElInput v-model="item.providerName" maxlength="120"
-              /></ElFormItem>
-              <ElFormItem
-                label="开始日期"
-                required
-                :error="historyFieldError('trainings', index, 'startDate')"
-                :data-validation-key="historyFieldKey('trainings', index, 'startDate')"
-                ><ElDatePicker v-model="item.startDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem
-                label="结束日期"
-                :error="historyFieldError('trainings', index, 'endDate')"
-                :data-validation-key="historyFieldKey('trainings', index, 'endDate')"
-                ><ElDatePicker v-model="item.endDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem label="培训结果"
-                ><ElSelect v-model="item.trainingResult" clearable
-                  ><ElOption
-                    v-for="option in dict('hrTrainingResult')"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value" /></ElSelect
-              ></ElFormItem>
-              <ElFormItem label="证书名称"
-                ><ElInput v-model="item.certificateName" maxlength="100"
-              /></ElFormItem>
-              <ElFormItem label="证书编号"
-                ><ElInput v-model="item.certificateNo" maxlength="80"
-              /></ElFormItem>
-              <ElFormItem label="备注" class="is-wide"
-                ><ElInput
-                  v-model="item.remark"
-                  type="textarea"
-                  :rows="4"
-                  maxlength="300"
-                  show-word-limit
-              /></ElFormItem>
-            </ArtForm>
-            <ArtForm
-              custom-layout
-              :show-reset="false"
-              :show-submit="false"
-              v-if="canViewCompensationDetails"
-              label-position="top"
-              form-class="hr-profile-page__compensation-form"
-              :disabled="!canEditCompensationDetails"
-            >
-              <ElFormItem label="培训费用">
-                <ElInputNumber
-                  v-if="canEditCompensationDetails"
-                  :model-value="editableAmount(item.cost)"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  @update:model-value="item.cost = $event"
-                />
-                <ElInput v-else :model-value="formatSensitiveNumber(item.cost)" disabled />
-              </ElFormItem>
-            </ArtForm>
-          </HistoryCard>
-        </HistorySection>
-      </ElTabPane>
-
-      <ElTabPane v-if="canViewCareerRecords && !form.historiesMasked" name="rewards">
-        <template #label
-          >奖惩经历
-          <span class="hr-profile-page__tab-count">{{ form.rewards.length }}</span></template
-        >
-        <HistorySection
-          title="奖惩经历"
-          description="统一记录奖励、处分及其认定级别"
-          add-label="新增奖惩记录"
-          icon="ri:award-line"
-          :count="form.rewards.length"
-          :readonly="!canEditCareerRecords"
-          @add="form.rewards.push(createReward())"
-        >
-          <HistoryCard
-            v-for="(item, index) in form.rewards"
-            :key="item.id || index"
-            :title="item.title || `奖惩记录 ${index + 1}`"
-            :subtitle="displayDict('hrRewardType', item.recordType)"
-            :readonly="!canEditCareerRecords"
-            @remove="form.rewards.splice(index, 1)"
-          >
-            <ArtForm
-              custom-layout
-              :show-reset="false"
-              :show-submit="false"
-              label-position="top"
-              form-class="hr-profile-page__record-form"
-              :disabled="!canEditCareerRecords"
-            >
-              <ElFormItem
-                label="奖惩类型"
-                required
-                :error="historyFieldError('rewards', index, 'recordType')"
-                :data-validation-key="historyFieldKey('rewards', index, 'recordType')"
-                ><ElSelect v-model="item.recordType"
-                  ><ElOption
-                    v-for="option in dict('hrRewardType')"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value" /></ElSelect
-              ></ElFormItem>
-              <ElFormItem label="奖惩级别"
-                ><ElSelect v-model="item.recordLevel" clearable
-                  ><ElOption
-                    v-for="option in dict('hrRewardLevel')"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value" /></ElSelect
-              ></ElFormItem>
-              <ElFormItem
-                label="奖惩标题"
-                required
-                :error="historyFieldError('rewards', index, 'title')"
-                :data-validation-key="historyFieldKey('rewards', index, 'title')"
-                ><ElInput v-model="item.title" maxlength="120"
-              /></ElFormItem>
-              <ElFormItem
-                label="发生日期"
-                required
-                :error="historyFieldError('rewards', index, 'recordDate')"
-                :data-validation-key="historyFieldKey('rewards', index, 'recordDate')"
-                ><ElDatePicker v-model="item.recordDate" type="date" value-format="YYYY-MM-DD"
-              /></ElFormItem>
-              <ElFormItem label="颁发/认定机构"
-                ><ElInput v-model="item.issuingOrganization" maxlength="120"
-              /></ElFormItem>
-              <ElFormItem label="详细说明" class="is-wide"
-                ><ElInput
-                  v-model="item.description"
-                  type="textarea"
-                  :rows="4"
-                  maxlength="500"
-                  show-word-limit
-              /></ElFormItem>
-            </ArtForm>
-            <ArtForm
-              custom-layout
-              :show-reset="false"
-              :show-submit="false"
-              v-if="canViewCompensationDetails"
-              label-position="top"
-              form-class="hr-profile-page__compensation-form"
-              :disabled="!canEditCompensationDetails"
-            >
-              <ElFormItem label="金额">
-                <ElInputNumber
-                  v-if="canEditCompensationDetails"
-                  :model-value="editableAmount(item.amount)"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  @update:model-value="item.amount = $event"
-                />
-                <ElInput v-else :model-value="formatSensitiveNumber(item.amount)" disabled />
-              </ElFormItem>
-            </ArtForm>
-          </HistoryCard>
-        </HistorySection>
-      </ElTabPane>
-      <ElTabPane v-if="form.historiesMasked" label="履历概览" name="historyOverview">
-        <div class="hr-profile-page__history-mask">
-          <ElAlert
-            title="履历内容已按字段权限脱敏，仅展示记录数量，当前页面不会提交履历变更。"
-            type="warning"
-            :closable="false"
-            show-icon
+      <ElTabs v-model="page.activeTab" class="hr-profile-page__tabs art-card-xs">
+        <ElTabPane label="基础信息" name="basic">
+          <ArtForm
+            ref="basicFormRef"
+            v-model="form"
+            :items="basicItems"
+            :rules="basicRules"
+            :span="formSpan"
+            :gutter="20"
+            label-width="112px"
+            :show-reset="false"
+            :show-submit="false"
+            :validate-on-rule-change="false"
           />
-          <div class="hr-profile-page__history-counts">
-            <div v-for="item in historyCountItems" :key="item.key">
-              <strong>{{ item.value }}</strong
-              ><span>{{ item.label }}</span>
-            </div>
-          </div>
-        </div>
-      </ElTabPane>
-    </ElTabs>
+        </ElTabPane>
+
+        <EmployeeContractsTab
+          v-model="form.contracts"
+          :is-readonly="!canEditCareerRecords"
+          :can-view-compensation-details="canViewCompensationDetails"
+          :can-edit-compensation-details="canEditCompensationDetails"
+          :dict="dict"
+          :display-dict="displayDict"
+          :validation-errors="historyValidationErrors"
+          :contract-number-automatic="contractNumber.automatic.value"
+          :contract-number-loading="contractNumber.loading.value"
+          :contract-number-manual-required="contractNumber.manualRequired(false)"
+          :contract-number-description="contractNumber.description.value"
+        />
+
+        <ElTabPane name="educations">
+          <template #label
+            >教育背景
+            <span class="hr-profile-page__tab-count">{{ form.educations.length }}</span></template
+          >
+          <HistorySection
+            title="教育背景"
+            description="维护学历、学位、学校与证书信息"
+            add-label="新增教育经历"
+            icon="ri:graduation-cap-line"
+            :count="form.educations.length"
+            :readonly="!canEditCareerRecords"
+            @add="form.educations.push(createEducation())"
+          >
+            <HistoryCard
+              v-for="(item, index) in form.educations"
+              :key="item.id || index"
+              :title="item.schoolName || `教育经历 ${index + 1}`"
+              :subtitle="displayDict('hrEducationLevel', item.educationLevel)"
+              :readonly="!canEditCareerRecords"
+              @remove="form.educations.splice(index, 1)"
+            >
+              <ArtForm
+                custom-layout
+                :show-reset="false"
+                :show-submit="false"
+                label-position="top"
+                form-class="hr-profile-page__record-form"
+                :disabled="!canEditCareerRecords"
+              >
+                <ElFormItem
+                  label="学校名称"
+                  required
+                  :error="historyFieldError('educations', index, 'schoolName')"
+                  :data-validation-key="historyFieldKey('educations', index, 'schoolName')"
+                  ><ElInput v-model="item.schoolName" maxlength="120"
+                /></ElFormItem>
+                <ElFormItem label="专业"
+                  ><ElInput v-model="item.majorName" maxlength="100"
+                /></ElFormItem>
+                <ElFormItem
+                  label="学历"
+                  required
+                  :error="historyFieldError('educations', index, 'educationLevel')"
+                  :data-validation-key="historyFieldKey('educations', index, 'educationLevel')"
+                  ><ElSelect v-model="item.educationLevel"
+                    ><ElOption
+                      v-for="option in dict('hrEducationLevel')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem label="学位"
+                  ><ElSelect v-model="item.degree" clearable
+                    ><ElOption
+                      v-for="option in dict('hrDegree')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem label="开始日期"
+                  ><ElDatePicker v-model="item.startDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem
+                  label="结束日期"
+                  :error="historyFieldError('educations', index, 'endDate')"
+                  :data-validation-key="historyFieldKey('educations', index, 'endDate')"
+                  ><ElDatePicker v-model="item.endDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem label="学习形式"
+                  ><ElRadioGroup v-model="item.fullTime"
+                    ><ElRadioButton :value="true">全日制</ElRadioButton
+                    ><ElRadioButton :value="false">非全日制</ElRadioButton></ElRadioGroup
+                  ></ElFormItem
+                >
+                <ElFormItem label="证书编号"
+                  ><ElInput v-model="item.certificateNo" maxlength="80"
+                /></ElFormItem>
+                <ElFormItem label="备注" class="is-wide"
+                  ><ElInput
+                    v-model="item.remark"
+                    type="textarea"
+                    :rows="4"
+                    maxlength="300"
+                    show-word-limit
+                /></ElFormItem>
+              </ArtForm>
+            </HistoryCard>
+          </HistorySection>
+        </ElTabPane>
+
+        <ElTabPane name="workExperiences">
+          <template #label
+            >工作经历
+            <span class="hr-profile-page__tab-count">{{
+              form.workExperiences.length
+            }}</span></template
+          >
+          <HistorySection
+            title="工作经历"
+            description="记录入职前任职公司、岗位职责和证明人"
+            add-label="新增工作经历"
+            icon="ri:briefcase-4-line"
+            :count="form.workExperiences.length"
+            :readonly="!canEditCareerRecords"
+            @add="form.workExperiences.push(createWorkExperience())"
+          >
+            <HistoryCard
+              v-for="(item, index) in form.workExperiences"
+              :key="item.id || index"
+              :title="item.companyName || `工作经历 ${index + 1}`"
+              :subtitle="item.jobTitle"
+              :readonly="!canEditCareerRecords"
+              @remove="form.workExperiences.splice(index, 1)"
+            >
+              <ArtForm
+                custom-layout
+                :show-reset="false"
+                :show-submit="false"
+                label-position="top"
+                form-class="hr-profile-page__record-form"
+                :disabled="!canEditCareerRecords"
+              >
+                <ElFormItem
+                  label="公司名称"
+                  required
+                  :error="historyFieldError('workExperiences', index, 'companyName')"
+                  :data-validation-key="historyFieldKey('workExperiences', index, 'companyName')"
+                  ><ElInput v-model="item.companyName" maxlength="120"
+                /></ElFormItem>
+                <ElFormItem label="所在部门"
+                  ><ElInput v-model="item.departmentName" maxlength="80"
+                /></ElFormItem>
+                <ElFormItem
+                  label="工作岗位"
+                  required
+                  :error="historyFieldError('workExperiences', index, 'jobTitle')"
+                  :data-validation-key="historyFieldKey('workExperiences', index, 'jobTitle')"
+                  ><ElInput v-model="item.jobTitle" maxlength="80"
+                /></ElFormItem>
+                <ElFormItem
+                  label="开始日期"
+                  required
+                  :error="historyFieldError('workExperiences', index, 'startDate')"
+                  :data-validation-key="historyFieldKey('workExperiences', index, 'startDate')"
+                  ><ElDatePicker v-model="item.startDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem
+                  label="结束日期"
+                  :error="historyFieldError('workExperiences', index, 'endDate')"
+                  :data-validation-key="historyFieldKey('workExperiences', index, 'endDate')"
+                  ><ElDatePicker v-model="item.endDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem v-if="canViewContactDetails" label="证明人"
+                  ><ElInput
+                    v-model="item.referenceName"
+                    maxlength="50"
+                    :disabled="!canEditContactDetails"
+                /></ElFormItem>
+                <ElFormItem v-if="canViewContactDetails" label="证明人电话"
+                  ><ElInput
+                    v-model="item.referencePhone"
+                    maxlength="20"
+                    :disabled="!canEditContactDetails"
+                /></ElFormItem>
+                <ElFormItem label="离职原因" class="is-wide"
+                  ><ElInput
+                    v-model="item.leavingReason"
+                    type="textarea"
+                    :rows="4"
+                    maxlength="150"
+                    show-word-limit
+                /></ElFormItem>
+                <ElFormItem label="主要职责" class="is-wide"
+                  ><ElInput
+                    v-model="item.responsibilities"
+                    type="textarea"
+                    :rows="4"
+                    maxlength="500"
+                    show-word-limit
+                /></ElFormItem>
+              </ArtForm>
+            </HistoryCard>
+          </HistorySection>
+        </ElTabPane>
+
+        <ElTabPane name="trainings">
+          <template #label
+            >培训经历
+            <span class="hr-profile-page__tab-count">{{ form.trainings.length }}</span></template
+          >
+          <HistorySection
+            title="培训经历"
+            description="维护培训项目、结果、证书与费用"
+            add-label="新增培训经历"
+            icon="ri:presentation-line"
+            :count="form.trainings.length"
+            :readonly="!canEditCareerRecords"
+            @add="form.trainings.push(createTraining())"
+          >
+            <HistoryCard
+              v-for="(item, index) in form.trainings"
+              :key="item.id || index"
+              :title="item.trainingName || `培训经历 ${index + 1}`"
+              :subtitle="displayDict('hrTrainingResult', item.trainingResult)"
+              :readonly="!canEditCareerRecords"
+              @remove="form.trainings.splice(index, 1)"
+            >
+              <ArtForm
+                custom-layout
+                :show-reset="false"
+                :show-submit="false"
+                label-position="top"
+                form-class="hr-profile-page__record-form"
+                :disabled="!canEditCareerRecords"
+              >
+                <ElFormItem
+                  label="培训名称"
+                  required
+                  :error="historyFieldError('trainings', index, 'trainingName')"
+                  :data-validation-key="historyFieldKey('trainings', index, 'trainingName')"
+                  ><ElInput v-model="item.trainingName" maxlength="120"
+                /></ElFormItem>
+                <ElFormItem
+                  label="培训类型"
+                  required
+                  :error="historyFieldError('trainings', index, 'trainingType')"
+                  :data-validation-key="historyFieldKey('trainings', index, 'trainingType')"
+                  ><ElSelect v-model="item.trainingType"
+                    ><ElOption
+                      v-for="option in dict('hrTrainingType')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem label="培训机构"
+                  ><ElInput v-model="item.providerName" maxlength="120"
+                /></ElFormItem>
+                <ElFormItem
+                  label="开始日期"
+                  required
+                  :error="historyFieldError('trainings', index, 'startDate')"
+                  :data-validation-key="historyFieldKey('trainings', index, 'startDate')"
+                  ><ElDatePicker v-model="item.startDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem
+                  label="结束日期"
+                  :error="historyFieldError('trainings', index, 'endDate')"
+                  :data-validation-key="historyFieldKey('trainings', index, 'endDate')"
+                  ><ElDatePicker v-model="item.endDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem label="培训结果"
+                  ><ElSelect v-model="item.trainingResult" clearable
+                    ><ElOption
+                      v-for="option in dict('hrTrainingResult')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem label="证书名称"
+                  ><ElInput v-model="item.certificateName" maxlength="100"
+                /></ElFormItem>
+                <ElFormItem label="证书编号"
+                  ><ElInput v-model="item.certificateNo" maxlength="80"
+                /></ElFormItem>
+                <ElFormItem label="备注" class="is-wide"
+                  ><ElInput
+                    v-model="item.remark"
+                    type="textarea"
+                    :rows="4"
+                    maxlength="300"
+                    show-word-limit
+                /></ElFormItem>
+              </ArtForm>
+              <ArtForm
+                custom-layout
+                :show-reset="false"
+                :show-submit="false"
+                v-if="canViewCompensationDetails"
+                label-position="top"
+                form-class="hr-profile-page__compensation-form"
+                :disabled="!canEditCompensationDetails"
+              >
+                <ElFormItem label="培训费用">
+                  <ElInputNumber
+                    v-if="canEditCompensationDetails"
+                    :model-value="editableAmount(item.cost)"
+                    :min="0"
+                    :precision="2"
+                    :controls="false"
+                    @update:model-value="item.cost = $event"
+                  />
+                  <ElInput v-else :model-value="formatSensitiveNumber(item.cost)" disabled />
+                </ElFormItem>
+              </ArtForm>
+            </HistoryCard>
+          </HistorySection>
+        </ElTabPane>
+
+        <ElTabPane name="rewards">
+          <template #label
+            >奖惩经历
+            <span class="hr-profile-page__tab-count">{{ form.rewards.length }}</span></template
+          >
+          <HistorySection
+            title="奖惩经历"
+            description="统一记录奖励、处分及其认定级别"
+            add-label="新增奖惩记录"
+            icon="ri:award-line"
+            :count="form.rewards.length"
+            :readonly="!canEditCareerRecords"
+            @add="form.rewards.push(createReward())"
+          >
+            <HistoryCard
+              v-for="(item, index) in form.rewards"
+              :key="item.id || index"
+              :title="item.title || `奖惩记录 ${index + 1}`"
+              :subtitle="displayDict('hrRewardType', item.recordType)"
+              :readonly="!canEditCareerRecords"
+              @remove="form.rewards.splice(index, 1)"
+            >
+              <ArtForm
+                custom-layout
+                :show-reset="false"
+                :show-submit="false"
+                label-position="top"
+                form-class="hr-profile-page__record-form"
+                :disabled="!canEditCareerRecords"
+              >
+                <ElFormItem
+                  label="奖惩类型"
+                  required
+                  :error="historyFieldError('rewards', index, 'recordType')"
+                  :data-validation-key="historyFieldKey('rewards', index, 'recordType')"
+                  ><ElSelect v-model="item.recordType"
+                    ><ElOption
+                      v-for="option in dict('hrRewardType')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem label="奖惩级别"
+                  ><ElSelect v-model="item.recordLevel" clearable
+                    ><ElOption
+                      v-for="option in dict('hrRewardLevel')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem
+                  label="奖惩标题"
+                  required
+                  :error="historyFieldError('rewards', index, 'title')"
+                  :data-validation-key="historyFieldKey('rewards', index, 'title')"
+                  ><ElInput v-model="item.title" maxlength="120"
+                /></ElFormItem>
+                <ElFormItem
+                  label="发生日期"
+                  required
+                  :error="historyFieldError('rewards', index, 'recordDate')"
+                  :data-validation-key="historyFieldKey('rewards', index, 'recordDate')"
+                  ><ElDatePicker v-model="item.recordDate" type="date" value-format="YYYY-MM-DD"
+                /></ElFormItem>
+                <ElFormItem label="颁发/认定机构"
+                  ><ElInput v-model="item.issuingOrganization" maxlength="120"
+                /></ElFormItem>
+                <ElFormItem label="详细说明" class="is-wide"
+                  ><ElInput
+                    v-model="item.description"
+                    type="textarea"
+                    :rows="4"
+                    maxlength="500"
+                    show-word-limit
+                /></ElFormItem>
+              </ArtForm>
+              <ArtForm
+                custom-layout
+                :show-reset="false"
+                :show-submit="false"
+                v-if="canViewCompensationDetails"
+                label-position="top"
+                form-class="hr-profile-page__compensation-form"
+                :disabled="!canEditCompensationDetails"
+              >
+                <ElFormItem label="金额">
+                  <ElInputNumber
+                    v-if="canEditCompensationDetails"
+                    :model-value="editableAmount(item.amount)"
+                    :min="0"
+                    :precision="2"
+                    :controls="false"
+                    @update:model-value="item.amount = $event"
+                  />
+                  <ElInput v-else :model-value="formatSensitiveNumber(item.amount)" disabled />
+                </ElFormItem>
+              </ArtForm>
+            </HistoryCard>
+          </HistorySection>
+        </ElTabPane>
+      </ElTabs>
+    </div>
 
     <ArtStickyActionBar class="hr-profile-page__footer">
       <template #summary>
@@ -551,6 +538,7 @@
   import { linkUserToEmployee } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
+  import { validateUuid } from '@/utils/form/uuid'
   import {
     canEditField,
     canViewField,
@@ -562,7 +550,7 @@
 
   type EmployeeProfile = Api.Hr.EmployeeProfile
   type HistoryTabName = 'contracts' | 'educations' | 'workExperiences' | 'trainings' | 'rewards'
-  type TabName = 'basic' | 'historyOverview' | HistoryTabName
+  type TabName = 'basic' | HistoryTabName
 
   interface ValidationTarget {
     tab: TabName
@@ -582,7 +570,13 @@
   const router = useRouter()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
-  const savePermission = computed(() => (route.params.id ? 'Hr:Employee:Edit' : 'Hr:Employee:Add'))
+  // 菜单路径注册为 employee-profile/:id? 模板，直接点击菜单时 id 是 ":id" 字面量，
+  // 只有合法 uuid 才代表编辑某条员工档案。
+  const routeEmployeeId = computed(() =>
+    typeof route.params.id === 'string' ? route.params.id : ''
+  )
+  const isEdit = computed(() => validateUuid(routeEmployeeId.value))
+  const savePermission = computed(() => (isEdit.value ? 'Hr:Employee:Edit' : 'Hr:Employee:Add'))
   const basicFormRef = ref<FormExpose>()
   const organizationFormOptions = ref<FormItemOption[]>([])
   const positionOptions = ref<Api.Hr.PositionOption[]>([])
@@ -590,7 +584,6 @@
   const isDesktop = useMediaQuery('(min-width: 1200px)')
   const isTablet = useMediaQuery('(min-width: 720px)')
   const formSpan = computed(() => (isDesktop.value ? 8 : isTablet.value ? 12 : 24))
-  const isEdit = computed(() => typeof route.params.id === 'string' && Boolean(route.params.id))
   const queryValue = (key: string): string => {
     const value = route.query[key]
     return typeof value === 'string' ? value.trim() : ''
@@ -665,18 +658,6 @@
       ? null
       : numericValue
   }
-  const historyCountItems = computed(() => [
-    { key: 'contracts', label: '劳动合同', value: form.historyCounts?.contracts ?? 0 },
-    { key: 'educations', label: '教育背景', value: form.historyCounts?.educations ?? 0 },
-    {
-      key: 'workExperiences',
-      label: '工作经历',
-      value: form.historyCounts?.workExperiences ?? 0
-    },
-    { key: 'trainings', label: '培训经历', value: form.historyCounts?.trainings ?? 0 },
-    { key: 'rewards', label: '奖惩经历', value: form.historyCounts?.rewards ?? 0 }
-  ])
-
   const dict = (code: string) => getDictMap.value[code] ?? []
   const displayDict = (code: string, value?: string | null): string =>
     dict(code).find((item) => item.value === value)?.label ?? value ?? '待完善'
@@ -1072,13 +1053,19 @@
     if (requestedEmail) form.email = requestedEmail
   }
 
+  const canonicalizeProfileRoute = async (): Promise<void> => {
+    if (!routeEmployeeId.value || validateUuid(routeEmployeeId.value)) return
+    await router.replace('/hr/personnel/employee-profile')
+  }
+
   const initializePage = async (): Promise<void> => {
     page.loading = true
     page.error = null
     try {
+      await canonicalizeProfileRoute()
       await ensureDictionaries()
       if (isEdit.value) {
-        const profile = await fetchEmployeeProfile(String(route.params.id))
+        const profile = await fetchEmployeeProfile(routeEmployeeId.value)
         if (!profile) throw new Error('员工档案不存在，或当前账号无权查看')
         replaceProfile(profile)
       } else {
@@ -1342,6 +1329,7 @@
         payload.rewards = structuredClone(toRaw(form.rewards))
       }
       const employeeId = await saveEmployeeProfile(payload)
+      form.id = employeeId
       if (sourceUserId.value) {
         try {
           await linkUserToEmployee({
@@ -1357,8 +1345,10 @@
         }
         return
       }
+      if (!isEdit.value) {
+        await router.replace(`/hr/personnel/employee-profile/${employeeId}`)
+      }
       ElMessage.success('员工完整档案已保存')
-      goBack()
     } catch (error) {
       ElMessage.error(getFriendlySupabaseErrorMessage(error, '员工档案保存失败，请稍后重试'))
     } finally {
@@ -1399,6 +1389,17 @@
 <style scoped lang="scss">
   .hr-profile-page {
     --profile-accent: var(--el-color-primary);
+
+    &__hero {
+      flex: none;
+      padding-bottom: 14px;
+    }
+
+    &__content {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden auto;
+    }
 
     :deep(> .art-async-state) {
       display: flex;
@@ -1500,7 +1501,7 @@
       flex: 1 0 auto;
       min-height: 0;
       padding: 0 22px 22px;
-      overflow: hidden;
+      overflow: visible;
     }
 
     &__tabs :deep(.el-tabs__header) {
@@ -1562,35 +1563,6 @@
       width: 100%;
     }
 
-    &__history-mask {
-      display: grid;
-      gap: 16px;
-      padding: 8px 0;
-    }
-
-    &__history-counts {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-
-      > div {
-        display: grid;
-        gap: 3px;
-        padding: 16px;
-        text-align: center;
-        background: var(--el-fill-color-lighter);
-        border-radius: var(--custom-radius);
-      }
-
-      strong {
-        font-size: 22px;
-      }
-
-      span {
-        color: var(--el-text-color-secondary);
-      }
-    }
-
     &__save-hint {
       display: block;
       font-size: 12px;
@@ -1603,7 +1575,7 @@
 
     &__footer {
       flex: none;
-      margin-top: calc(var(--art-space-4) + var(--art-sticky-offset));
+      margin-top: 0;
     }
 
     @media (width <= 980px) {
@@ -1617,10 +1589,6 @@
 
       :deep(.hr-profile-page__record-form) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      &__history-counts {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
@@ -1650,10 +1618,6 @@
 
       :deep(.hr-profile-page__record-form .is-wide) {
         grid-column: auto;
-      }
-
-      &__history-counts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       &__save-hint {

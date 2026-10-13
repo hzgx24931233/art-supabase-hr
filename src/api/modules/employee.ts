@@ -1,4 +1,5 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
+import { validateUuid } from '@/utils/form/uuid'
 import { useSupabase } from '@/hooks'
 import TreeUtils from '@/utils/tree'
 
@@ -155,6 +156,7 @@ export async function fetchOrganizationPositionDirectory(organizationId?: string
 }
 
 export async function fetchEmployeeProfile(employeeId: string): Promise<EmployeeProfile | null> {
+  if (!validateUuid(employeeId)) return null
   const response = await responseHandle<EmployeeProfile>(
     () => supabase.rpc('hr_get_employee_profile_secure', { p_employee_id: employeeId }),
     { breakReturn: true, showErrorMessage: true }

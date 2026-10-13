@@ -6,7 +6,7 @@
     role="tablist"
   >
     <button
-      v-for="item in items"
+      v-for="(item, index) in items"
       :key="item.value"
       type="button"
       role="tab"
@@ -18,7 +18,7 @@
         <ArtSvgIcon :icon="item.icon" />
       </span>
       <span class="hr-entity-navigation__content">
-        <strong>{{ item.label }}</strong>
+        <strong>第{{index+1 }}步->{{ item.label }}</strong>
         <small>{{ item.description }}</small>
       </span>
     </button>

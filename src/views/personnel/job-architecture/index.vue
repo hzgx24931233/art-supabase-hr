@@ -108,7 +108,7 @@
   const tabs: ArchitectureTab[] = [
     {
       entity: 'family',
-      label: '1.职族',
+      label: '职族',
       description: '相近职务的专业序列',
       icon: 'ri:git-branch-line',
       addPermission: 'Hr:JobFamily:Add',
@@ -117,7 +117,7 @@
     },
     {
       entity: 'profile',
-      label: '2.标准职务',
+      label: '标准职务',
       description: '跨组织复用的工作分类',
       icon: 'ri:id-card-line',
       addPermission: 'Hr:JobProfile:Add',
@@ -126,7 +126,7 @@
     },
     {
       entity: 'grade',
-      label: '3.职级',
+      label: '职级',
       description: '能力与薪酬层级基准',
       icon: 'ri:bar-chart-grouped-line',
       addPermission: 'Hr:Grade:Add',
