@@ -569,7 +569,7 @@
       title: `${payload.type === 'add' ? '新增' : '编辑'}${titles[payload.entity]}`,
       subtitle: '企业工时管理 · 计划、事实、异常、修正与封账全程留痕',
       contentMaxHeight: '72vh',
-      confirmText: payload.type === 'add' ? '创建记录' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建记录' : '保存',
       onConfirm: handleSubmit,
       onOpen: async (_data, api) => {
         api.setLoading(true)

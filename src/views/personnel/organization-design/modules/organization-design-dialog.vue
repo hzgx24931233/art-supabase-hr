@@ -335,7 +335,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${payload.entity === 'scenario' ? '组织变革方案' : '组织变更项'}`,
       subtitle: '方案、影响评审与组织主数据执行分层治理',
-      confirmText: payload.type === 'add' ? '创建草稿' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建草稿' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

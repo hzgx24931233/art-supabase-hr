@@ -290,7 +290,7 @@
       subtitle: `在${data.workspace.title}中维护${data.tab.label}，提交后将按权限和业务状态处理。`,
       size: 'lg',
       contentMaxHeight: '72vh',
-      confirmText: data.record?.id ? '保存更改' : '创建记录',
+      confirmText: data.record?.id ? '保存' : '创建记录',
       loading: ruleKeys.length > 0,
       loadingText: '正在加载单据编号规则…',
       onOpen: async (_openData, api) => {

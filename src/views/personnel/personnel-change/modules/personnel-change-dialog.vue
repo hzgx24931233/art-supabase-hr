@@ -608,7 +608,7 @@
       subtitle: '先确认员工与异动类型，再维护本次需要变化的任职信息；审批通过后按生效日期更新。',
       size: 'lg',
       contentMaxHeight: 'calc(100vh - 184px)',
-      confirmText: data.record?.id ? '保存更改' : '创建异动单',
+      confirmText: data.record?.id ? '保存' : '创建异动单',
       loading: true,
       onOpen: async (_openData, api) => {
         api.setLoading(true)

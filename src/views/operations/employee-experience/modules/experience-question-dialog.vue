@@ -163,7 +163,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: editData ? '编辑调查题目' : '新增调查题目',
       subtitle: '题目维度决定聚合分析口径，发布后题目不可更改',
-      confirmText: editData ? '保存题目' : '添加题目',
+      confirmText: editData ? '保存' : '添加题目',
       onConfirm: async (_data, api) => {
         api.setLoading(true)
         try {

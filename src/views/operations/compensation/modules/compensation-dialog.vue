@@ -732,7 +732,7 @@
         nextEntity === 'employee'
           ? '保存为草稿，批准后按生效日期进入员工薪酬历史并供财务核算读取'
           : '维护统一、可审计的企业薪酬政策',
-      confirmText: row ? '保存更改' : '创建草稿',
+      confirmText: row ? '保存' : '创建草稿',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

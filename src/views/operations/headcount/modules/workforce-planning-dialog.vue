@@ -412,7 +412,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${label}`,
       subtitle: '规划建议、审批状态与岗位实时容量分层管理，并保留完整来源追溯',
-      confirmText: row ? '保存更改' : '创建记录',
+      confirmText: row ? '保存' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

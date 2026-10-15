@@ -405,11 +405,7 @@
         payload.entity === 'contract'
           ? '维护合同基础版本；续签和终止请使用生命周期动作'
           : '维护证照资料；保存后进入真实性核验',
-      confirmText: editing.value
-        ? '保存更改'
-        : payload.entity === 'contract'
-          ? '创建合同'
-          : '创建资质',
+      confirmText: editing.value ? '保存' : payload.entity === 'contract' ? '创建合同' : '创建资质',
       contentMaxHeight: 'calc(100vh - 184px)',
       loading: Boolean(payload.loadEditData),
       loadingText: '正在加载合规档案…',

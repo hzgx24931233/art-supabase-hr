@@ -230,7 +230,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${type === 'add' ? '新建' : '编辑'}员工体验调查`,
       subtitle: '调查发布前可维护配置与题目，发布后设置与受众快照冻结',
-      confirmText: type === 'add' ? '创建草稿' : '保存设置',
+      confirmText: type === 'add' ? '创建草稿' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

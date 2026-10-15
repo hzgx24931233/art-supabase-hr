@@ -502,8 +502,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${entity.value === 'cycle' ? '调薪周期' : entity.value === 'budget' ? '组织预算' : '员工调薪建议'}`,
       subtitle: '所有金额、状态与生效结果均在服务端按权限校验',
-      confirmText:
-        payload.type === 'add' ? '创建记录' : formModel.exclude ? '确认排除' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建记录' : formModel.exclude ? '确认排除' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

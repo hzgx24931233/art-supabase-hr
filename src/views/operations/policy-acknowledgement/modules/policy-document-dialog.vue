@@ -280,7 +280,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: payload.type === 'add' ? '新建政策版本' : '编辑政策草稿',
       subtitle: '政策编码、版本、适用范围和送达规则共同构成受控发布基线',
-      confirmText: payload.type === 'add' ? '创建草稿' : '保存草稿',
+      confirmText: payload.type === 'add' ? '创建草稿' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

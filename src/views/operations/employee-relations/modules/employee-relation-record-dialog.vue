@@ -432,7 +432,7 @@
           ? `${payload.type === 'add' ? '新建' : '编辑'}员工关系案件`
           : `${payload.type === 'add' ? '新增' : '编辑'}处置行动`,
       subtitle: '案件资料受权限控制，敏感内容由独立权限保护',
-      confirmText: payload.type === 'add' ? '创建记录' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建记录' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

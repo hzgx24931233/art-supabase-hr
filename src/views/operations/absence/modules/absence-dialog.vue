@@ -494,7 +494,7 @@
           ? '调整休假余额'
           : `${row ? '编辑' : '新增'}${titleMap[nextEntity]}`,
       subtitle: '假勤政策、余额与审批结果全程留痕并保留可审计历史',
-      confirmText: nextEntity === 'balance' ? '确认调整' : row ? '保存更改' : '创建记录',
+      confirmText: nextEntity === 'balance' ? '确认调整' : row ? '保存' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

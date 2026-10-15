@@ -1,0 +1,1 @@
+import{o as e}from"./style-Dmt_xenf.js";import{l as t}from"./art-form-7VX9kYpw.js";function n(n,r){return n&&n.length?t(n,e(r,2)):[]}export{n as t};

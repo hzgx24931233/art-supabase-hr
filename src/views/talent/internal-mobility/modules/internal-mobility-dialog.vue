@@ -480,7 +480,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${payload.entity === 'opportunity' ? '内部机会' : '内部申请'}`,
       subtitle: '内部机会、员工选择与正式任职变更分层治理',
-      confirmText: payload.type === 'add' ? '保存草稿' : '保存更改',
+      confirmText: payload.type === 'add' ? '保存草稿' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

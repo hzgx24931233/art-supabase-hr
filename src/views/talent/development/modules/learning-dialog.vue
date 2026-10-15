@@ -625,7 +625,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${label}`,
       subtitle: '学习发展数据通过独立业务权限与状态机访问',
-      confirmText: row ? '保存更改' : '创建记录',
+      confirmText: row ? '保存' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

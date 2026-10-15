@@ -434,7 +434,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${label}`,
       subtitle: '继任信息通过独立 HR 管理权限访问',
-      confirmText: row ? '保存更改' : '创建记录',
+      confirmText: row ? '保存' : '创建记录',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

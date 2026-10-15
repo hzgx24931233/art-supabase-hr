@@ -436,11 +436,7 @@
         payload.entity === 'request'
           ? '工单提交后进入员工服务交付队列'
           : '服务目录决定员工入口、受理队列与 SLA',
-      confirmText: editing.value
-        ? '保存更改'
-        : payload.entity === 'request'
-          ? '保存草稿'
-          : '创建服务',
+      confirmText: editing.value ? '保存' : payload.entity === 'request' ? '保存草稿' : '创建服务',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

@@ -46,6 +46,7 @@
   interface FormExpose {
     validate: () => Promise<boolean>
     clearValidate: () => void
+    markPristine: () => void
     reloadOptions: (key: string) => Promise<void>
   }
 
@@ -283,13 +284,16 @@
         ...createInitialModel(),
         ...structuredClone(toRaw(row))
       } as ArchitectureFormModel)
+    await nextTick()
+    formRef.value?.markPristine()
     await dialogRef.value?.handleOpen(undefined, {
       title: `${row ? '编辑' : '新增'}${nextEntity === 'profile' ? '标准职务' : nextEntity === 'family' ? '职族' : '职级'}`,
       subtitle:
         nextEntity === 'profile'
           ? '标准职务跨组织复用，岗位必须引用一个标准职务'
           : '维护企业统一的职务分类和晋升层级标准',
-      confirmText: row ? '保存更改' : '创建记录',
+      confirmText: row ? '保存' : '创建记录',
+      skipConfirmWhenPristine: Boolean(row),
       contentMaxHeight: 'calc(100vh - 184px)',
       loading: false,
       onOpen: async (_data, api) => {

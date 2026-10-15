@@ -595,7 +595,7 @@
     await dialogRef.value?.handleOpen(payload.type, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${titles[payload.entity]}`,
       contentMaxHeight: '72vh',
-      confirmText: payload.type === 'add' ? '创建记录' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建记录' : '保存',
       onConfirm: handleSubmit,
       onOpen: async (_data, api) => {
         api.setLoading(true)

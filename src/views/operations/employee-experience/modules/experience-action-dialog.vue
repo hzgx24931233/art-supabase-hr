@@ -261,7 +261,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}员工体验改善行动`,
       subtitle: '行动从匿名聚合主题出发，不连接任何员工个人答卷',
-      confirmText: payload.type === 'add' ? '创建行动' : '保存行动',
+      confirmText: payload.type === 'add' ? '创建行动' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

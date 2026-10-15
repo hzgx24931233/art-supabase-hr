@@ -157,6 +157,7 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import EmployeeHistoryList from './modules/employee-history-list.vue'
   import { fetchEmployeeProfile } from '@hr/api'
+  import { HR_EMPLOYEE_DICTIONARY_CODES } from '@hr/views/shared/hr-employee-dictionaries'
   import { useUserStore } from '@/store/modules/user'
   import { canViewField, getFieldAccess } from '@/utils/field-permission'
 
@@ -171,7 +172,8 @@
   const userStore = useUserStore()
   const activeTab = ref('basic')
   const profile = shallowRef<EmployeeProfile>()
-  const page = reactive<{ loading: boolean; error: Error | null }>({ loading: false, error: null })
+  // 首屏即进入骨架屏，避免等待期间先渲染空档案状态。
+  const page = reactive<{ loading: boolean; error: Error | null }>({ loading: true, error: null })
 
   const employeeInitials = computed(() => {
     const name = profile.value?.employeeName.trim() || ''
@@ -464,31 +466,21 @@
     return { title, description, icon, items, getTitle, getSubtitle }
   }
 
+  // 字典只服务于标签与下拉展示，与档案主数据并行加载；失败时回退显示数据库原始值，
+  // 不再让字典请求阻塞员工档案首屏。
+  const loadDictionaries = (): Promise<void> =>
+    Promise.all(HR_EMPLOYEE_DICTIONARY_CODES.map((code) => userStore.ensureDictLoaded(code))).then(
+      () => undefined
+    )
+
   const loadPage = async (): Promise<void> => {
     page.loading = true
     page.error = null
     try {
-      await Promise.all([
-        userStore.fetchDictList(),
-        ...[
-          'sex',
-          'hrEmploymentStatus',
-          'hrEmploymentType',
-          'hrEducationLevel',
-          'hrEthnicity',
-          'hrMaritalStatus',
-          'hrPoliticalStatus',
-          'hrEmergencyRelation',
-          'hrContractType',
-          'hrContractStatus',
-          'hrDegree',
-          'hrTrainingType',
-          'hrTrainingResult',
-          'hrRewardType',
-          'hrRewardLevel'
-        ].map((code) => userStore.ensureDictLoaded(code))
+      const [result] = await Promise.all([
+        fetchEmployeeProfile(String(route.params.id || '')),
+        loadDictionaries().catch(() => undefined)
       ])
-      const result = await fetchEmployeeProfile(String(route.params.id || ''))
       if (!result) throw new Error('员工档案不存在，或当前账号无权查看')
       profile.value = result
       activeTab.value = result.historiesMasked ? 'histories' : 'basic'

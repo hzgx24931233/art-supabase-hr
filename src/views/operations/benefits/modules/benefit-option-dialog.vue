@@ -188,7 +188,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}福利覆盖方案`,
       subtitle: `${payload.plan.planCode} · ${payload.plan.planName}`,
-      confirmText: payload.type === 'add' ? '创建方案' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建方案' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)

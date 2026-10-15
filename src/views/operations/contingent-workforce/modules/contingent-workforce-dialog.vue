@@ -634,7 +634,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: `${payload.type === 'add' ? '新增' : '编辑'}${context.value.title}`,
       subtitle: '外部人员、供应商、访问权限与正式员工主数据分域管理并全程审计',
-      confirmText: payload.type === 'add' ? '创建记录' : '保存更改',
+      confirmText: payload.type === 'add' ? '创建记录' : '保存',
       contentMaxHeight: 'calc(100vh - 184px)',
       onOpen: async (_data, api) => {
         api.setLoading(true)
