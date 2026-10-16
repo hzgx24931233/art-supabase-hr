@@ -18,10 +18,30 @@
         <ArtPageHeader
           :title="isEdit ? '编辑员工档案' : '新增员工档案'"
           :subtitle="pageSubtitle"
-          show-back
+          :show-back="openedFromRoster"
           @back="goBack"
         >
-          <template #actions>
+          <template #default>
+            <ElButton
+              :loading="page.loading"
+              :disabled="page.saving"
+              title="读取远程最新员工档案"
+              @click="handleRefresh"
+            >
+              <ArtSvgIcon icon="ri:refresh-line" />
+              刷新
+            </ElButton>
+            <ElButton v-if="openedFromRoster" :disabled="page.saving" @click="goBack">
+              返回
+            </ElButton>
+            <ElButton
+              v-auth="savePermission"
+              type="primary"
+              :loading="page.saving"
+              @click="handleSave"
+            >
+              保存员工档案
+            </ElButton>
             <ElTag v-if="form.employeeNo" type="primary" effect="plain" round>
               {{ form.employeeNo }}
             </ElTag>
@@ -520,15 +540,6 @@
             带 <b>*</b> 的信息为必填项；岗位仅用于记录员工的组织任职关系。
           </span>
         </template>
-        <ElButton :disabled="page.saving" @click="goBack">取消</ElButton>
-        <ElButton
-          v-auth="savePermission"
-          type="primary"
-          :loading="page.saving"
-          @click="handleSave"
-        >
-          保存员工档案
-        </ElButton>
       </ArtStickyActionBar>
     </ArtOverlayLoading>
   </ArtPageShell>
@@ -551,6 +562,7 @@
   import ArtOverlayLoading from '@/components/core/feedback/art-overlay-loading/index.vue'
   import { useDelayedLoading } from '@/hooks/core/useDelayedLoading'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import EmployeeContractsTab from './modules/employee-contracts-tab.vue'
   import HistorySection from './modules/history-section.vue'
@@ -571,6 +583,8 @@
   import { linkUserToEmployee } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
+  import { useUnsavedChangesGuard } from '@/hooks/core/useUnsavedChangesGuard'
+  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { validateUuid } from '@/utils/form/uuid'
   import {
     canEditField,
@@ -601,6 +615,7 @@
 
   const route = useRoute()
   const router = useRouter()
+  const { confirmAction } = useArtFeedback()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   // 菜单路径注册为 employee-profile/:id? 模板，直接点击菜单时 id 是 ":id" 字面量，
@@ -622,6 +637,9 @@
     return typeof value === 'string' ? value.trim() : ''
   }
   const sourceUserId = computed(() => queryValue('sourceUserId'))
+  const openedFromRoster = computed(
+    () => queryValue('returnPath') === '/hr/personnel/employee-roster'
+  )
   const userLinkNotice = computed(() =>
     !isEdit.value && sourceUserId.value
       ? `正在为账号 ${queryValue('email') || sourceUserId.value} 创建员工档案；保存后系统会自动完成账号关联。`
@@ -655,6 +673,7 @@
   const markFormPristine = (): void => {
     formBaseline.value = cloneModelValue(form)
   }
+
   const employeeNumber = useDocumentNumberRule('hr.employee')
   const contractNumber = useDocumentNumberRule('hr.employee_contract')
   const fieldAccessFallback = computed<Api.Common.FieldAccessLevel>(() =>
@@ -1109,6 +1128,7 @@
         if (!profile) throw new Error('员工档案不存在，或当前账号无权查看')
         replaceProfile(profile)
       } else {
+        Object.assign(form, createEmployeeProfile())
         applyUserLinkPrefill()
       }
     } catch (error) {
@@ -1393,7 +1413,12 @@
         return
       }
       if (!isEdit.value) {
-        await router.replace(`/hr/personnel/employee-profile/${employeeId}`)
+        await router.replace({
+          path: `/hr/personnel/employee-profile/${employeeId}`,
+          query: openedFromRoster.value
+            ? { returnPath: '/hr/personnel/employee-roster' }
+            : undefined
+        })
       }
       ElMessage.success('员工完整档案已保存')
     } catch (error) {
@@ -1403,6 +1428,36 @@
       saveLoading.stop()
     }
   }
+
+  const handleRefresh = async (): Promise<void> => {
+    if (page.loading || page.saving) return
+    if (hasUnsavedChanges.value) {
+      try {
+        await confirmAction('刷新会丢弃当前未保存的修改，是否继续读取远程最新数据？', {
+          title: '刷新员工档案',
+          confirmButtonText: '继续刷新',
+          cancelButtonText: '取消'
+        })
+      } catch {
+        return
+      }
+    }
+
+    await initializePage()
+    if (!page.error) ElMessage.success('员工档案已刷新')
+  }
+
+  const saveForNavigation = async (): Promise<boolean> => {
+    await handleSave()
+    return !hasUnsavedChanges.value
+  }
+
+  useUnsavedChangesGuard({
+    // 初始化和保存期间不拦截路由，避免默认表单值或保存后的内部 replace 被误判为草稿。
+    isDirty: computed(() => !page.loading && !page.saving && hasUnsavedChanges.value),
+    save: saveForNavigation,
+    detail: '选择“保存并离开”会先校验并提交当前员工档案。'
+  })
 
   const returnToSource = (employeeId?: string, linkStatus?: 'success' | 'failed'): void => {
     if (queryValue('returnPath') !== '/system/user' || !sourceUserId.value) {

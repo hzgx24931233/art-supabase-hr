@@ -426,9 +426,10 @@
     )
   }
   const openProfile = (row?: Employee): void => {
-    void router.push(
-      row?.id ? `/hr/personnel/employee-profile/${row.id}` : '/hr/personnel/employee-profile'
-    )
+    void router.push({
+      path: row?.id ? `/hr/personnel/employee-profile/${row.id}` : '/hr/personnel/employee-profile',
+      query: { returnPath: '/hr/personnel/employee-roster' }
+    })
   }
   const openEmployeeDetail = (row: Employee): void => {
     if (!row.id) return
